@@ -1,0 +1,15 @@
+view_cache_demo is a sample Android application demonstrating how to do
+smooth scrolling of a complex image view by caching a bitmap rendering
+of the image. Without this, scrolling would be jerky because of the
+time taken to redraw the view each time.
+
+Contents:
+    src/ -- Java sources for the Android app
+    res/ -- resources for the Android app
+    AndroidManifest.xml, build.xml, *.properties -- for driving
+        Google's Android build tools (note that you will have to
+        provide a couple more of these--see INSTALL for details)
+    README -- this file
+    INSTALL -- build/installation instructions
+
+Lawrence D'Oliveiro <ldo@geek-central.gen.nz>
