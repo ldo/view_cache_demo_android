@@ -15,7 +15,7 @@ public class Drawer
     protected final int StrokeColor = 0xff240896;
     protected final int BackgroundColor = 0xffbdaa7d;
     protected final float Radius = 250.0f;
-    protected final int NrLevels = 8;
+    protected final int NrLevels = 12;
     protected final float Kink = 0.8f;
 
     public Drawer()
