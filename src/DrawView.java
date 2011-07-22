@@ -327,7 +327,7 @@ public class DrawView extends android.view.View
         break;
         case android.view.MotionEvent.ACTION_UP:
             LastMouse = null;
-            if (CacheRebuildNeeded)
+            if (CacheRebuildNeeded && BuildViewCache == null)
               {
                 invalidate();
               } /*if*/
