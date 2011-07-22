@@ -15,6 +15,7 @@ public class DrawView extends android.view.View
     protected final float MinZoomFactor = 1.0f;
 
     protected Drawer DrawWhat;
+    protected boolean UseCaching = true;
 
     protected static class ViewCacheBits
       {
@@ -151,6 +152,24 @@ public class DrawView extends android.view.View
         this.DrawWhat = DrawWhat;
       } /*SetDrawer*/
 
+    public boolean GetUseCaching()
+      {
+        return
+            UseCaching;
+      } /*GetUseCaching*/
+
+    public void SetUseCaching
+      (
+        boolean NewUseCaching
+      )
+      {
+        UseCaching = NewUseCaching;
+        if (!UseCaching)
+          {
+            ForgetViewCache();
+          } /*if*/
+      } /*SetUseCaching*/
+
     public void ForgetViewCache()
       {
         if (ViewCache != null)
@@ -259,7 +278,7 @@ public class DrawView extends android.view.View
                     new android.graphics.RectF(0, 0, v.ScaledViewWidth, v.ScaledViewHeight);
                 DestRect.offset(ViewOffset.x, ViewOffset.y);
                 DrawWhat.Draw(g, DestRect);
-                if (BuildViewCache == null)
+                if (UseCaching && BuildViewCache == null)
                   {
                   /* first call, nobody has called RebuildViewCache yet, do it */
                     RebuildViewCache();
@@ -435,7 +454,7 @@ public class DrawView extends android.view.View
       /* try to avoid “java.lang.OutOfMemoryError: bitmap size exceeds VM budget”
         crashes by minimizing cache rebuild calls. */
       {
-        CacheRebuildNeeded = true;
+        CacheRebuildNeeded = UseCaching;
         super.invalidate();
       } /*NoCacheInvalidate*/
 
@@ -445,7 +464,10 @@ public class DrawView extends android.view.View
         if (DrawWhat != null)
           {
             ForgetViewCache(); /* because redraw might happen before cache generation is complete */
-            RebuildViewCache();
+            if (UseCaching)
+              {
+                RebuildViewCache();
+              } /*if*/
           } /*if*/
         super.invalidate();
       } /*invalidate*/

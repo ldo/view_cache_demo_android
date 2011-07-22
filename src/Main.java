@@ -13,6 +13,67 @@ public class Main extends android.app.Activity
     protected Drawer DrawWhat;
     protected DrawView TheDrawView;
 
+    protected class ControlDialog
+        extends android.app.Dialog
+        implements android.content.DialogInterface.OnDismissListener
+      {
+        final android.content.Context ctx;
+        android.widget.RadioGroup TheButtons;
+
+        public ControlDialog
+          (
+            android.content.Context ctx
+          )
+          {
+            super(ctx);
+            this.ctx = ctx;
+          } /*ControlDialog*/
+
+        @Override
+        public void onCreate
+          (
+            android.os.Bundle savedInstanceState
+          )
+          {
+            setTitle(R.string.cache_control);
+            final android.widget.LinearLayout MainLayout = new android.widget.LinearLayout(ctx);
+            MainLayout.setOrientation(android.widget.LinearLayout.VERTICAL);
+            setContentView(MainLayout);
+            TheButtons = new android.widget.RadioGroup(ctx);
+            final android.view.ViewGroup.LayoutParams ButtonLayout =
+                new android.view.ViewGroup.LayoutParams
+                  (
+                    android.view.ViewGroup.LayoutParams.FILL_PARENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                  );
+              {
+                final android.widget.RadioButton CachingOn =
+                    new android.widget.RadioButton(ctx);
+                CachingOn.setText(R.string.on);
+                CachingOn.setId(1);
+                final android.widget.RadioButton CachingOff =
+                    new android.widget.RadioButton(ctx);
+                CachingOff.setText(R.string.off);
+                CachingOff.setId(0);
+                TheButtons.addView(CachingOn, 0, ButtonLayout);
+                TheButtons.addView(CachingOff, 1, ButtonLayout);
+              }
+            MainLayout.addView(TheButtons, ButtonLayout);
+            TheButtons.check(TheDrawView.GetUseCaching() ? 1 : 0);
+            setOnDismissListener(this);
+          } /*onCreate*/
+
+        @Override
+        public void onDismiss
+          (
+            android.content.DialogInterface TheDialog
+          )
+          {
+            TheDrawView.SetUseCaching(TheButtons.getCheckedRadioButtonId() != 0);
+          } /*onClick*/
+
+      } /*ControlDialog*/
+
     @Override
     public void onCreate
       (
@@ -64,5 +125,32 @@ public class Main extends android.app.Activity
         TheDrawView.CancelViewCacheBuild();
         TheDrawView.ForgetViewCache();
       } /*onPause*/
+
+    @Override
+    public boolean dispatchKeyEvent
+      (
+        android.view.KeyEvent TheEvent
+      )
+      {
+        boolean Handled = false;
+        if
+          (
+                TheDrawView != null
+            &&
+                TheEvent.getAction() == android.view.KeyEvent.ACTION_UP
+            &&
+                TheEvent.getKeyCode() == android.view.KeyEvent.KEYCODE_MENU
+          )
+          {
+            new ControlDialog(this).show();
+            Handled = true;
+          } /*if*/
+        if (!Handled)
+          {
+            Handled = super.dispatchKeyEvent(TheEvent);
+          } /*if*/
+        return
+            Handled;
+      } /*dispatchKeyEvent*/
 
   } /*Main*/

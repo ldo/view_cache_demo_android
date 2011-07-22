@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">View Cache Demo</string>
+
+    <string name="cache_control">Cache Control:</string>
+    <string name="off">Off</string>
+    <string name="on">On</string>
 </resources>
