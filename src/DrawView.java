@@ -268,8 +268,13 @@ public class DrawView extends android.view.View
             final android.graphics.PointF ViewOffset = ScrollOffset(v);
             if (ViewCache != null)
               {
-                final android.graphics.RectF DestRect = new android.graphics.RectF(ViewCache.Bounds);
+                final android.graphics.RectF DestRect =
+                    new android.graphics.RectF(ViewCache.Bounds);
                 DestRect.offset(ViewOffset.x, ViewOffset.y);
+              /* Unfortunately, the sample image doesn't look exactly the same
+                when drawn offscreen and then copied on-screen, versus being
+                drawn directly on-screen: path strokes are slightly thicker
+                in the former case. Not sure what to do about this. */
                 g.drawBitmap(ViewCache.Bits, null, DestRect, null);
               }
             else
