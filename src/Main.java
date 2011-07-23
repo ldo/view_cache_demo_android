@@ -122,7 +122,6 @@ public class Main extends android.app.Activity
         super.onPause();
       /* try to avoid “java.lang.OutOfMemoryError: bitmap size exceeds VM budget”
         crashes ... sigh */
-        TheDrawView.CancelViewCacheBuild();
         TheDrawView.ForgetViewCache();
       } /*onPause*/
 

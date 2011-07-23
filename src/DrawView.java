@@ -6,6 +6,10 @@ package nz.gen.geek_central.view_cache_demo;
     Written by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 */
 
+import android.graphics.PointF;
+import android.graphics.RectF;
+import android.graphics.Bitmap;
+
 public class DrawView extends android.view.View
   {
     protected android.content.Context Context;
@@ -19,13 +23,13 @@ public class DrawView extends android.view.View
 
     protected static class ViewCacheBits
       {
-        public final android.graphics.Bitmap Bits;
-        public final android.graphics.RectF Bounds;
+        public final Bitmap Bits;
+        public final RectF Bounds;
 
         public ViewCacheBits
           (
-            android.graphics.Bitmap Bits,
-            android.graphics.RectF Bounds
+            Bitmap Bits,
+            RectF Bounds
           )
           {
             this.Bits = Bits;
@@ -34,28 +38,28 @@ public class DrawView extends android.view.View
 
       } /*ViewCacheBits*/
 
-    protected android.graphics.PointF LastMouse = null;
+    protected PointF LastMouse = null;
     protected final float MaxCacheFactor = 2.0f;
+      /* how far to cache beyond visible bounds */
     protected ViewCacheBits ViewCache = null;
     protected ViewCacheBuilder BuildViewCache = null;
     protected boolean CacheRebuildNeeded = false;
 
     protected class ViewCacheBuilder extends android.os.AsyncTask<Void, Integer, ViewCacheBits>
       {
-        protected android.graphics.RectF ScaledViewBounds, CacheBounds;
+        protected RectF ScaledViewBounds, CacheBounds;
 
         protected void onPreExecute()
           {
             final ViewParms v = new ViewParms();
-            ScaledViewBounds =
-                new android.graphics.RectF(0, 0, v.ScaledViewWidth, v.ScaledViewHeight);
-            final android.graphics.PointF ViewOffset = ScrollOffset(v);
-            final android.graphics.PointF ViewCenter = new android.graphics.PointF
+            ScaledViewBounds = new RectF(0, 0, v.ScaledViewWidth, v.ScaledViewHeight);
+            final PointF ViewOffset = ScrollOffset(v);
+            final PointF ViewCenter = new PointF
               (
                 /*x =*/ v.ViewWidth / 2.0f - ViewOffset.x,
                 /*y =*/ v.ViewHeight / 2.0f - ViewOffset.y
               );
-            CacheBounds = new android.graphics.RectF
+            CacheBounds = new RectF
               (
                 /*left =*/
                     Math.max
@@ -94,15 +98,15 @@ public class DrawView extends android.view.View
             Void... Unused
           )
           {
-            final android.graphics.Bitmap CacheBits =
-                android.graphics.Bitmap.createBitmap
+            final Bitmap CacheBits =
+                Bitmap.createBitmap
                   (
                     /*width =*/ (int)(CacheBounds.right - CacheBounds.left),
                     /*height =*/ (int)(CacheBounds.bottom - CacheBounds.top),
-                    /*config =*/ android.graphics.Bitmap.Config.ARGB_8888
+                    /*config =*/ Bitmap.Config.ARGB_8888
                   );
             final android.graphics.Canvas CacheDraw = new android.graphics.Canvas(CacheBits);
-            final android.graphics.RectF DestRect = new android.graphics.RectF(ScaledViewBounds);
+            final RectF DestRect = new RectF(ScaledViewBounds);
             DestRect.offset(- CacheBounds.left, - CacheBounds.top);
             DrawWhat.Draw(CacheDraw, DestRect); /* this is the time-consuming part */
             CacheBits.prepareToDraw();
@@ -123,7 +127,7 @@ public class DrawView extends android.view.View
             ViewCacheBits Result
           )
           {
-            ForgetViewCache();
+            DisposeViewCache();
             ViewCache = Result;
             BuildViewCache = null;
             CacheRebuildNeeded = false;
@@ -170,16 +174,16 @@ public class DrawView extends android.view.View
           } /*if*/
       } /*SetUseCaching*/
 
-    public void ForgetViewCache()
+    protected void DisposeViewCache()
       {
         if (ViewCache != null)
           {
             ViewCache.Bits.recycle();
             ViewCache = null;
           } /*if*/
-      } /*ForgetViewCache*/
+      } /*DisposeViewCache*/
 
-    public void CancelViewCacheBuild()
+    protected void CancelViewCacheBuild()
       {
         if (BuildViewCache != null)
           {
@@ -191,6 +195,12 @@ public class DrawView extends android.view.View
             BuildViewCache = null;
           } /*if*/
       } /*CancelViewCacheBuild*/
+
+    public void ForgetViewCache()
+      {
+        CancelViewCacheBuild();
+        DisposeViewCache();
+      } /*ForgetViewCache*/
 
     protected void RebuildViewCache()
       {
@@ -234,7 +244,7 @@ public class DrawView extends android.view.View
 
       } /*ViewParms*/
 
-    android.graphics.PointF ScrollOffset
+    protected PointF ScrollOffset
       (
         ViewParms v
       )
@@ -243,7 +253,7 @@ public class DrawView extends android.view.View
         will be non-positive. */
       {
         return
-            new android.graphics.PointF
+            new PointF
               (
                 /*x =*/
                         (v.ViewWidth - v.ScaledViewWidth)
@@ -265,11 +275,10 @@ public class DrawView extends android.view.View
         if (DrawWhat != null)
           {
             final ViewParms v = new ViewParms();
-            final android.graphics.PointF ViewOffset = ScrollOffset(v);
+            final PointF ViewOffset = ScrollOffset(v);
             if (ViewCache != null)
               {
-                final android.graphics.RectF DestRect =
-                    new android.graphics.RectF(ViewCache.Bounds);
+                final RectF DestRect = new RectF(ViewCache.Bounds);
                 DestRect.offset(ViewOffset.x, ViewOffset.y);
               /* Unfortunately, the sample image doesn't look exactly the same
                 when drawn offscreen and then copied on-screen, versus being
@@ -279,8 +288,7 @@ public class DrawView extends android.view.View
               }
             else
               {
-                final android.graphics.RectF DestRect =
-                    new android.graphics.RectF(0, 0, v.ScaledViewWidth, v.ScaledViewHeight);
+                final RectF DestRect = new RectF(0, 0, v.ScaledViewWidth, v.ScaledViewHeight);
                 DestRect.offset(ViewOffset.x, ViewOffset.y);
                 DrawWhat.Draw(g, DestRect);
                 if (UseCaching && BuildViewCache == null)
@@ -303,14 +311,13 @@ public class DrawView extends android.view.View
         switch (TheEvent.getAction())
           {
         case android.view.MotionEvent.ACTION_DOWN:
-            LastMouse = new android.graphics.PointF(TheEvent.getX(), TheEvent.getY());
+            LastMouse = new PointF(TheEvent.getX(), TheEvent.getY());
             Handled = true;
         break;
         case android.view.MotionEvent.ACTION_MOVE:
             if (LastMouse != null && DrawWhat != null)
               {
-                final android.graphics.PointF ThisMouse =
-                    new android.graphics.PointF(TheEvent.getX(), TheEvent.getY());
+                final PointF ThisMouse = new PointF(TheEvent.getX(), TheEvent.getY());
                 final ViewParms v = new ViewParms();
                 if (v.ScaledViewWidth > v.ViewWidth && ThisMouse.x != LastMouse.x)
                   {
@@ -361,7 +368,7 @@ public class DrawView extends android.view.View
               );
         if (NewZoomFactor != ZoomFactor)
           {
-            ForgetViewCache();
+            DisposeViewCache();
           /* try to adjust scroll offset so point in map at centre of view stays in centre */
             final ViewParms v1 = new ViewParms();
             final ViewParms v2 = new ViewParms(NewZoomFactor);
@@ -468,7 +475,8 @@ public class DrawView extends android.view.View
       {
         if (DrawWhat != null)
           {
-            ForgetViewCache(); /* because redraw might happen before cache generation is complete */
+            DisposeViewCache();
+              /* because redraw might happen before cache generation is complete */
             if (UseCaching)
               {
                 RebuildViewCache();
