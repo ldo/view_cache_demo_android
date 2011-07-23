@@ -3,6 +3,9 @@ package nz.gen.geek_central.view_cache_demo;
     Sample class for drawing an image that takes an appreciable
     fraction of a second to render.
 
+    This image is definitely a fractal, but what kind? Koch-snowflake-like?
+    Sierpinski-ish, even? Answers on a post-card, please.
+
     Written by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 */
 
@@ -15,8 +18,10 @@ public class Drawer
     protected final int StrokeColor = 0xff240896;
     protected final int BackgroundColor = 0xffbdaa7d;
     protected final float Radius = 250.0f;
-    protected final int NrLevels = 12;
-    protected final float Kink = 0.8f;
+    protected final int NrLevels = 12; /* controls complexity of pattern */
+  /* try playing with these, for extra fun: */
+    protected final float Kink = 0.7f; /* acuteness of corner bend */
+    protected final float Skew = -0.2f; /* asymmetry of subdivision */
 
     public Drawer()
       {
@@ -41,10 +46,10 @@ public class Drawer
             final PointF Delta = new PointF(To.x - From.x, To.y - From.y);
             final PointF Corner = new PointF
               (
-                Mid.x + Delta.y * 0.5f * Kink,
-                Mid.y - Delta.x * 0.5f * Kink
+                Mid.x + Delta.y * 0.5f * Kink + Delta.x * Skew,
+                Mid.y - Delta.x * 0.5f * Kink + Delta.y * Skew
               );
-              /* so Corner forms right angle between From and To points */
+              /* Corner forms angle between From and To points */
           /* note reversed order of points in recursive calls so subdivided corners go opposite way */
             DrawSegment(In, To, Corner, Level - 1);
             DrawSegment(In, Corner, From, Level - 1);
