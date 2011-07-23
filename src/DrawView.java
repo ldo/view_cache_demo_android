@@ -56,6 +56,7 @@ public class DrawView extends android.view.View
     protected ViewCacheBits ViewCache = null;
     protected ViewCacheBuilder BuildViewCache = null;
     protected boolean CacheRebuildNeeded = false;
+    boolean MouseMoved = false;
 
     protected class ViewCacheBuilder extends android.os.AsyncTask<Void, Integer, ViewCacheBits>
       {
@@ -324,6 +325,7 @@ public class DrawView extends android.view.View
           {
         case android.view.MotionEvent.ACTION_DOWN:
             LastMouse = new PointF(TheEvent.getX(), TheEvent.getY());
+            MouseMoved = false;
             Handled = true;
         break;
         case android.view.MotionEvent.ACTION_MOVE:
@@ -345,11 +347,49 @@ public class DrawView extends android.view.View
                     ScrollY = Math.max(0.0f, Math.min(1.0f, ScrollY + ScrollDelta));
                     NoCacheInvalidate();
                   } /*if*/
+                if (Math.hypot(ThisMouse.x - LastMouse.x, ThisMouse.y - LastMouse.y) > 2.0)
+                  {
+                    MouseMoved = true;
+                  } /*if*/
                 LastMouse = ThisMouse;
               } /*if*/
             Handled = true;
         break;
         case android.view.MotionEvent.ACTION_UP:
+            if (LastMouse != null && !MouseMoved)
+              {
+              /* move point that user tapped to centre of view if possible */
+                final ViewParms v = new ViewParms();
+                final PointF ViewOffset = ScrollOffset(v);
+                final PointF NewCenter = new PointF
+                  (
+                    (DrawWhat.Bounds.right + DrawWhat.Bounds.left) / 2.0f,
+                    (DrawWhat.Bounds.bottom + DrawWhat.Bounds.top) / 2.0f
+                  );
+                if (v.ScaledViewWidth > v.ViewWidth)
+                  {
+                    NewCenter.x =
+                                (LastMouse.x - ViewOffset.x)
+                           /
+                                v.ScaledViewWidth
+                           *
+                                v.DrawWidth
+                        +
+                            DrawWhat.Bounds.left;
+                  } /*if*/
+                if (v.ScaledViewHeight > v.ViewHeight)
+                  {
+                    NewCenter.y =
+                                (LastMouse.y - ViewOffset.y)
+                           /
+                                v.ScaledViewHeight
+                           *
+                                v.DrawHeight
+                        +
+                            DrawWhat.Bounds.top;
+                  } /*if*/
+                ScrollTo(NewCenter.x, NewCenter.y);
+              } /*if*/
             LastMouse = null;
             if (CacheRebuildNeeded && BuildViewCache == null)
               {
@@ -443,11 +483,7 @@ public class DrawView extends android.view.View
               {
                 ScrollX =
                         (
-                                (X - DrawWhat.Bounds.left)
-                            /
-                                v.DrawWidth
-                            *
-                                v.ScaledViewWidth
+                            (X - DrawWhat.Bounds.left) / v.DrawWidth * v.ScaledViewWidth
                         -
                             v.ViewWidth / 2.0f
                         )
@@ -459,7 +495,7 @@ public class DrawView extends android.view.View
               {
                 ScrollY =
                         (
-                            (DrawWhat.Bounds.top - Y) / v.DrawHeight * v.ScaledViewHeight
+                            (Y - DrawWhat.Bounds.top) / v.DrawHeight * v.ScaledViewHeight
                         -
                             v.ViewHeight / 2.0f
                         )

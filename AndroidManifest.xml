@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="nz.gen.geek_central.view_cache_demo"
     android:versionCode="1"
-    android:versionName="15177.2"
+    android:versionName="15178.4"
 >
     <application
         android:label="@string/app_name"
