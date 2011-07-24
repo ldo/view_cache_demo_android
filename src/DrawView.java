@@ -291,6 +291,7 @@ public class DrawView extends android.view.View
             final PointF ViewOffset = ScrollOffset(v);
             if (ViewCache != null)
               {
+              /* cache available, use it */
                 final RectF DestRect = new RectF(ViewCache.Bounds);
                 DestRect.offset(ViewOffset.x, ViewOffset.y);
               /* Unfortunately, the sample image doesn't look exactly the same
@@ -301,6 +302,7 @@ public class DrawView extends android.view.View
               }
             else
               {
+              /* do it the slow way */
                 final RectF DestRect = new RectF(0, 0, v.ScaledViewWidth, v.ScaledViewHeight);
                 DestRect.offset(ViewOffset.x, ViewOffset.y);
                 DrawWhat.Draw(g, DestRect);
@@ -308,6 +310,9 @@ public class DrawView extends android.view.View
                   {
                   /* first call, nobody has called RebuildViewCache yet, do it */
                     RebuildViewCache();
+                  /* Note, however, that CPU contention can slow down the cache rebuild
+                    if the user does a lot of rapid scrolling in the meantime. Would
+                    probably work better on multicore. */
                   } /*if*/
               } /*if*/
           } /*if*/
