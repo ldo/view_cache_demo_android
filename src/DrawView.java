@@ -148,17 +148,47 @@ public class DrawView extends android.view.View
 
       } /*ViewCacheBuilder*/
 
+    protected void Init
+      (
+        android.content.Context Context
+      )
+      /* common code for all constructors */
+      {
+        this.Context = Context;
+        ZoomFactor = 1.0f;
+        ScrollX = 0.5f;
+        ScrollY = 0.5f;
+        setHorizontalFadingEdgeEnabled(true);
+        setVerticalFadingEdgeEnabled(true);
+      } /*Init*/
+
+    public DrawView
+      (
+        android.content.Context Context
+      )
+      {
+        super(Context);
+        Init(Context);
+      } /*DrawView*/
+
     public DrawView
       (
         android.content.Context Context,
         android.util.AttributeSet Attributes
       )
       {
-        super(Context, Attributes);
-        this.Context = Context;
-        ZoomFactor = 1.0f;
-        ScrollX = 0.5f;
-        ScrollY = 0.5f;
+        this(Context, Attributes, 0);
+      } /*DrawView*/
+
+    public DrawView
+      (
+        android.content.Context Context,
+        android.util.AttributeSet Attributes,
+        int DefaultStyle
+      )
+      {
+        super(Context, Attributes, DefaultStyle);
+        Init(Context);
       } /*DrawView*/
 
     public void SetDrawer
@@ -537,5 +567,62 @@ public class DrawView extends android.view.View
           } /*if*/
         super.invalidate();
       } /*invalidate*/
+
+  /* implementing the following (and calling setxxxFadingEdgeEnabled(true)
+    in the constructors, above) will cause fading edges to appear */
+
+    protected static final int ScrollScale = 1000;
+
+    @Override
+    protected int computeHorizontalScrollExtent()
+      {
+        final ViewParms v = new ViewParms();
+        return
+            (int)Math.round(v.ViewWidth * ScrollScale / v.ScaledViewWidth);
+      } /*computeHorizontalScrollExtent*/
+
+    @Override
+    protected int computeHorizontalScrollOffset()
+      {
+        final ViewParms v = new ViewParms();
+        return
+            v.ScaledViewWidth > v.ViewWidth ?
+                (int)Math.round(ScrollX * ScrollScale * (v.ScaledViewWidth - v.ViewWidth) /  v.ScaledViewWidth)
+            :
+                0;
+      } /*computeHorizontalScrollOffset*/
+
+    @Override
+    protected int computeHorizontalScrollRange()
+      {
+        return
+            ScrollScale;
+      } /*computeHorizontalScrollRange*/
+
+    @Override
+    protected int computeVerticalScrollExtent()
+      {
+        final ViewParms v = new ViewParms();
+        return
+            (int)Math.round(v.ViewHeight * ScrollScale / v.ScaledViewHeight);
+      } /*computeVerticalScrollExtent*/
+
+    @Override
+    protected int computeVerticalScrollOffset()
+      {
+        final ViewParms v = new ViewParms();
+        return
+            v.ScaledViewHeight > v.ViewHeight ?
+                (int)Math.round(ScrollY * ScrollScale * (v.ScaledViewHeight - v.ViewHeight) / v.ScaledViewHeight)
+            :
+                0;
+      } /*computeVerticalScrollOffset*/
+
+    @Override
+    protected int computeVerticalScrollRange()
+      {
+        return
+            ScrollScale;
+      } /*computeVerticalScrollRange*/
 
   } /*DrawView*/
