@@ -4,6 +4,9 @@
     android:versionCode="1"
     android:versionName="15180.1"
 >
+    <uses-sdk
+        android:minSdkVersion="7"
+    />
     <application
         android:label="@string/app_name"
         android:icon="@drawable/icon"
