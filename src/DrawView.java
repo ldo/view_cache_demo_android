@@ -487,9 +487,6 @@ public class DrawView extends android.view.View
                                     LastDistance != 0.0f
                                 &&
                                     ThisDistance != 0.0f
-                                &&
-                                    Math.abs(ThisDistance - LastDistance) / LastDistance > 0.1f
-                                      /* some reasonable threshold to avoid oversensitivity */
                               )
                               {
                                 ZoomBy(ThisDistance /  LastDistance);
