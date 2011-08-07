@@ -197,6 +197,17 @@ public class DrawView extends android.view.View
         Init(Context);
       } /*DrawView*/
 
+  /*
+    Implementation of saving/restoring instance state. Doing this
+    allows me to transparently restore scroll/zoom state if system
+    needs to kill me while I'm in the background.
+
+    Notes: View.onSaveInstanceState returns AbsSavedState.EMPTY_STATE,
+    and View.onRestoreInstanceState expects to be passed this. Also,
+    both superclass methods MUST be called in my overrides (the docs
+    don't make this clear).
+  */
+
     protected static class SavedDrawViewState extends android.view.AbsSavedState
       {
         public static android.os.Parcelable.Creator<SavedDrawViewState> CREATOR =
