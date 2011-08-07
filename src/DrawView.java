@@ -197,6 +197,104 @@ public class DrawView extends android.view.View
         Init(Context);
       } /*DrawView*/
 
+    protected static class SavedDrawViewState extends android.view.AbsSavedState
+      {
+        public static android.os.Parcelable.Creator<SavedDrawViewState> CREATOR =
+            new android.os.Parcelable.Creator<SavedDrawViewState>()
+              {
+                public SavedDrawViewState createFromParcel
+                  (
+                    android.os.Parcel SavedState
+                  )
+                  {
+                    System.err.println("DrawView.SavedDrawViewState.createFromParcel"); /* debug */
+                    final android.view.AbsSavedState SuperState =
+                        android.view.AbsSavedState.CREATOR.createFromParcel(SavedState);
+                    final android.os.Bundle MyState = SavedState.readBundle();
+                    return
+                        new SavedDrawViewState
+                          (
+                            SuperState,
+                            MyState.getFloat("ScrollX", 0.5f),
+                            MyState.getFloat("ScrollY", 0.5f),
+                            MyState.getFloat("ZoomFactor", 1.0f)
+                          );
+                  } /*createFromParcel*/
+
+                public SavedDrawViewState[] newArray
+                  (
+                    int NrElts
+                  )
+                  {
+                    return
+                        new SavedDrawViewState[NrElts];
+                  } /*newArray*/
+              } /*Parcelable.Creator*/;
+
+        public final android.os.Parcelable SuperState;
+        public final float ScrollX, ScrollY, ZoomFactor;
+
+        public SavedDrawViewState
+          (
+            android.os.Parcelable SuperState,
+            float ScrollX,
+            float ScrollY,
+            float ZoomFactor
+          )
+          {
+            super(SuperState);
+            this.SuperState = SuperState;
+            this.ScrollX = ScrollX;
+            this.ScrollY = ScrollY;
+            this.ZoomFactor = ZoomFactor;
+          } /*SavedDrawViewState*/
+
+        public void writeToParcel
+          (
+            android.os.Parcel SavedState,
+            int Flags
+          )
+          {
+            System.err.println("DrawView.SavedDrawViewState.writeToParcel"); /* debug */
+            super.writeToParcel(SavedState, Flags);
+            final android.os.Bundle MyState = new android.os.Bundle();
+            MyState.putFloat("ScrollX", ScrollX);
+            MyState.putFloat("ScrollY", ScrollY);
+            MyState.putFloat("ZoomFactor", ZoomFactor);
+            SavedState.writeBundle(MyState);
+          } /*writeToParcel*/
+
+      } /*SavedDrawViewState*/
+
+    @Override
+    public android.os.Parcelable onSaveInstanceState()
+      {
+        System.err.println("DrawView called to save instance state"); /* debug */
+        return
+            new SavedDrawViewState
+              (
+                super.onSaveInstanceState(),
+                ScrollX,
+                ScrollY,
+                ZoomFactor
+              );
+      } /*onSaveInstanceState*/
+
+    @Override
+    public void onRestoreInstanceState
+      (
+        android.os.Parcelable SavedState
+      )
+      {
+        System.err.println("DrawView called to restore instance state " + (SavedState != null ? "non-null" : "null")); /* debug */
+        final SavedDrawViewState MyState = (SavedDrawViewState)SavedState;
+        super.onRestoreInstanceState(MyState.SuperState);
+        ScrollX = MyState.ScrollX;
+        ScrollY = MyState.ScrollY;
+        ZoomFactor = MyState.ZoomFactor;
+        invalidate();
+      } /*onRestoreInstanceState*/
+
     public void SetDrawer
       (
         Drawer DrawWhat
