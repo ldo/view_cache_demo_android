@@ -200,7 +200,8 @@ public class DrawView extends android.view.View
   /*
     Implementation of saving/restoring instance state. Doing this
     allows me to transparently restore scroll/zoom state if system
-    needs to kill me while I'm in the background.
+    needs to kill me while I'm in the background, or on an orientation
+    change while I'm in the foreground.
 
     Notes: View.onSaveInstanceState returns AbsSavedState.EMPTY_STATE,
     and View.onRestoreInstanceState expects to be passed this. Also,
@@ -243,6 +244,7 @@ public class DrawView extends android.view.View
               } /*Parcelable.Creator*/;
 
         public final android.os.Parcelable SuperState;
+      /* state that I'm actually interested in saving/restoring: */
         public final float ScrollX, ScrollY, ZoomFactor;
 
         public SavedDrawViewState
@@ -268,6 +270,9 @@ public class DrawView extends android.view.View
           {
             System.err.println("DrawView.SavedDrawViewState.writeToParcel"); /* debug */
             super.writeToParcel(SavedState, Flags);
+          /* put my state in a Bundle, where each item is associated with a
+            keyword name (unlike the Parcel itself, where items are identified
+            by order). I think this makes things easier to understand. */
             final android.os.Bundle MyState = new android.os.Bundle();
             MyState.putFloat("ScrollX", ScrollX);
             MyState.putFloat("ScrollY", ScrollY);
