@@ -92,6 +92,36 @@ public class Main extends android.app.Activity
         android.os.Bundle SavedInstanceState
       )
       {
+          { /* show some info about the display */
+            final android.view.Display MainDisplay = getWindowManager().getDefaultDisplay();
+            final android.util.DisplayMetrics MainMetrics = new android.util.DisplayMetrics();
+            MainDisplay.getMetrics(MainMetrics);
+            System.err.printf
+              (
+                    "view_cache_demo: display %d size %dx%d, orientation %d,"
+                +
+                    " pixel format 0x%x, refresh %.2fHz\n",
+                MainDisplay.getDisplayId(),
+                MainDisplay.getWidth(),
+                MainDisplay.getHeight(),
+                MainDisplay.getOrientation(),
+                MainDisplay.getPixelFormat(),
+                MainDisplay.getRefreshRate()
+              );
+            System.err.printf
+              (
+                    " metrics: density %.2f, densityDpi %d, scaledDensity %.2f,"
+                +
+                    " size %dx%d, dpi %.2fx%.2f\n",
+                MainMetrics.density,
+                MainMetrics.densityDpi,
+                MainMetrics.scaledDensity,
+                MainMetrics.widthPixels,
+                MainMetrics.heightPixels,
+                MainMetrics.xdpi,
+                MainMetrics.ydpi
+              );
+          }
         super.onCreate(SavedInstanceState);
         setContentView(R.layout.main);
         DrawWhat = new Drawer();
