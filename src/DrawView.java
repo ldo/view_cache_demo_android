@@ -150,6 +150,7 @@ public class DrawView extends android.view.View
             ViewCache = Result;
             BuildViewCache = null;
             CacheRebuildNeeded = false;
+            DrawView.super.invalidate();
           } /*onPostExecute*/
 
       } /*ViewCacheBuilder*/
@@ -449,6 +450,11 @@ public class DrawView extends android.view.View
                 drawn directly on-screen: path strokes are slightly thicker
                 in the former case. Not sure what to do about this. */
                 g.drawBitmap(ViewCache.Bits, null, DestRect, null);
+              }
+            else if (BuildViewCache != null)
+              {
+              /* cache rebuild in progress, wait for it to finish before actually drawing,
+                to avoid CPU contention that slows things down */
               }
             else
               {
@@ -817,8 +823,6 @@ public class DrawView extends android.view.View
       {
         if (DrawWhat != null)
           {
-            DisposeViewCache();
-              /* because redraw might happen before cache generation is complete */
             if (UseCaching)
               {
                 RebuildViewCache();
