@@ -33,6 +33,95 @@ public class DrawView extends android.view.View
 
     protected Drawer DrawWhat;
     protected boolean UseCaching = true;
+    protected android.view.GestureDetector FlingDetector =
+        new android.view.GestureDetector
+          (
+            Context,
+            new android.view.GestureDetector.SimpleOnGestureListener()
+              {
+                @Override
+                public boolean onFling
+                  (
+                    MotionEvent DownEvent,
+                    MotionEvent UpEvent,
+                    float XVelocity,
+                    float YVelocity
+                  )
+                  {
+                    final ViewParms v = new ViewParms();
+                    final PointF ViewOffset = ScrollOffset(v);
+                    final boolean DoFling =
+                            v.ScaledViewWidth > v.ViewWidth && XVelocity != 0
+                        ||
+                            v.ScaledViewHeight > v.ViewHeight && YVelocity != 0;
+                    if (DoFling)
+                      {
+                        final double CurrentTime = System.currentTimeMillis() / 1000.0;
+                        final float ScrollDuration =
+                                (float)Math.hypot(XVelocity, YVelocity)
+                            /
+                                (float)Math.hypot(v.ViewWidth, v.ViewHeight);
+                        final float Attenuate = 2.0f;
+                        final PointF StartScroll = /* current centre point in image */
+                            new PointF
+                              (
+                                    DrawWhat.Bounds.left
+                                +
+                                        (v.ViewWidth / 2.0f - ViewOffset.x)
+                                    /
+                                        v.ScaledViewWidth
+                                    *
+                                        v.DrawWidth,
+                                    DrawWhat.Bounds.top
+                                +
+                                        (v.ViewHeight / 2.0f - ViewOffset.y)
+                                    /
+                                        v.ScaledViewHeight
+                                    *
+                                        v.DrawHeight
+                              );
+                        final PointF EndScroll =
+                            new PointF
+                              (
+                                    StartScroll.x
+                                -
+                                        XVelocity
+                                    /
+                                        v.ScaledViewWidth
+                                    *
+                                        v.DrawWidth
+                                    *
+                                        ScrollDuration
+                                    /
+                                        Attenuate,
+                                    StartScroll.y
+                                -
+                                        YVelocity
+                                    /
+                                        v.ScaledViewHeight
+                                    *
+                                        v.DrawWidth
+                                    *
+                                        ScrollDuration
+                                    /
+                                        Attenuate
+                              );
+                        EndScroll.x = Math.max(DrawWhat.Bounds.left, Math.min(EndScroll.x, DrawWhat.Bounds.right));
+                        EndScroll.y = Math.max(DrawWhat.Bounds.top, Math.min(EndScroll.y, DrawWhat.Bounds.bottom));
+                        new ScrollAnimator
+                          (
+                            /*AnimFunction =*/ new android.view.animation.DecelerateInterpolator(),
+                            /*StartTime =*/ CurrentTime,
+                            /*EndTime =*/ CurrentTime + ScrollDuration,
+                            /*StartScroll =*/ StartScroll,
+                            /*EndScroll =*/ EndScroll
+                          );
+                      } /*if*/
+                    return
+                        DoFling;
+                  } /*onFling*/
+              } /*GestureDetector.SimpleOnGestureListener*/
+          );
 
     protected static class ViewCacheBits
       {
@@ -148,10 +237,61 @@ public class DrawView extends android.view.View
             DisposeViewCache();
             ViewCache = Result;
             BuildViewCache = null;
-            DrawView.super.invalidate();
+            invalidate();
           } /*onPostExecute*/
 
       } /*ViewCacheBuilder*/
+
+    protected class ScrollAnimator implements Runnable
+      {
+        final android.view.animation.Interpolator AnimFunction;
+        final double StartTime, EndTime;
+        final PointF StartScroll, EndScroll;
+
+        public ScrollAnimator
+          (
+            android.view.animation.Interpolator AnimFunction,
+            double StartTime,
+            double EndTime,
+            PointF StartScroll,
+            PointF EndScroll
+          )
+          {
+            this.AnimFunction = AnimFunction;
+            this.StartTime = StartTime;
+            this.EndTime = EndTime;
+            this.StartScroll = StartScroll;
+            this.EndScroll = EndScroll;
+            CurrentAnim = this;
+            getHandler().post(this);
+          } /*ScrollAnimator*/
+
+        public void run()
+          {
+            if (CurrentAnim != null)
+              {
+                final double CurrentTime = System.currentTimeMillis() / 1000.0;
+                final float AnimAmt =
+                    AnimFunction.getInterpolation((float)((CurrentTime - StartTime) / (EndTime - StartTime)));
+                ScrollTo
+                  (
+                    StartScroll.x + (EndScroll.x - StartScroll.x) * AnimAmt,
+                    StartScroll.y + (EndScroll.y - StartScroll.y) * AnimAmt
+                  );
+                if (CurrentTime < EndTime)
+                  {
+                    getHandler().post(this);
+                  }
+                else
+                  {
+                    CurrentAnim = null;
+                  } /*if*/
+              } /*if*/
+          } /*run*/
+
+      } /*ScrollAnimator*/
+
+    private ScrollAnimator CurrentAnim = null;
 
     protected void Init
       (
@@ -371,6 +511,38 @@ public class DrawView extends android.view.View
         BuildViewCache.execute((Void)null);
       } /*RebuildViewCache*/
 
+    protected void RecenterViewCache()
+      {
+        if
+          (
+                UseCaching
+            &&
+                BuildViewCache == null
+            &&
+                ViewCache != null
+          )
+          {
+            final ViewParms v = new ViewParms();
+            final PointF ViewOffset = ScrollOffset(v);
+            final RectF DestRect = new RectF(ViewCache.Bounds);
+            DestRect.offset(ViewOffset.x, ViewOffset.y);
+            if
+                (
+                    DestRect.left > 0
+                ||
+                    DestRect.top > 0
+                ||
+                    DestRect.right <= v.ViewWidth
+                ||
+                    DestRect.bottom <= v.ViewHeight
+                )
+              {
+              /* cache doesn't completely cover view */
+                RebuildViewCache();
+              } /*if*/
+          } /*if*/
+      } /*RecenterViewCache*/
+
     protected class ViewParms
       /* parameters for scaling and positioning map display */
       {
@@ -448,24 +620,7 @@ public class DrawView extends android.view.View
                 drawn directly on-screen: path strokes are slightly thicker
                 in the former case. Not sure what to do about this. */
                 g.drawBitmap(ViewCache.Bits, null, DestRect, null);
-                if
-                  (
-                        BuildViewCache == null
-                    &&
-                        (
-                            DestRect.left > 0
-                        ||
-                            DestRect.top > 0
-                        ||
-                            DestRect.right <= v.ViewWidth
-                        ||
-                            DestRect.bottom <= v.ViewHeight
-                        )
-                  )
-                  {
-                  /* cache doesn't completely cover view */
-                    RebuildViewCache();
-                  } /*if*/
+                RecenterViewCache();
               }
             else if (BuildViewCache != null)
               {
@@ -493,229 +648,233 @@ public class DrawView extends android.view.View
         MotionEvent TheEvent
       )
       {
-        boolean Handled = false;
-        boolean DoRebuild = false;
-        switch (TheEvent.getAction() & (1 << MotionEvent.ACTION_POINTER_ID_SHIFT) - 1)
+        CurrentAnim = null; /* cancel any animation in progress */
+        boolean Handled = FlingDetector.onTouchEvent(TheEvent);
+        if (!Handled)
           {
-        case MotionEvent.ACTION_DOWN:
-            LastMouse1 = new PointF(TheEvent.getX(), TheEvent.getY());
-            Mouse1ID = TheEvent.getPointerId(0);
-            MouseMoved = false;
-            Handled = true;
-        break;
-        case MotionEvent.ACTION_POINTER_DOWN:
+            boolean DoRebuild = false;
+            switch (TheEvent.getAction() & (1 << MotionEvent.ACTION_POINTER_ID_SHIFT) - 1)
               {
-                final int PointerIndex =
-                        (TheEvent.getAction() & MotionEvent.ACTION_POINTER_ID_MASK)
-                    >>
-                        MotionEvent.ACTION_POINTER_ID_SHIFT;
-                final int MouseID = TheEvent.getPointerId(PointerIndex);
-                System.err.println("PuzzleView: semi-down pointer ID " + MouseID); /* debug */
-                final PointF MousePos = new PointF
-                  (
-                    TheEvent.getX(PointerIndex),
-                    TheEvent.getY(PointerIndex)
-                  );
-                if (LastMouse1 == null)
+            case MotionEvent.ACTION_DOWN:
+                LastMouse1 = new PointF(TheEvent.getX(), TheEvent.getY());
+                Mouse1ID = TheEvent.getPointerId(0);
+                MouseMoved = false;
+                Handled = true;
+            break;
+            case MotionEvent.ACTION_POINTER_DOWN:
                   {
-                    Mouse1ID = MouseID;
-                    LastMouse1 = MousePos;
-                  }
-                else if (LastMouse2 == null)
-                  {
-                    Mouse2ID = MouseID;
-                    LastMouse2 = MousePos;
-                  } /*if*/
-              }
-            Handled = true;
-        break;
-        case MotionEvent.ACTION_MOVE:
-            if (LastMouse1 != null && DrawWhat != null)
-              {
-                final int Mouse1Index = TheEvent.findPointerIndex(Mouse1ID);
-                final int Mouse2Index =
-                    LastMouse2 != null ?
-                        TheEvent.findPointerIndex(Mouse2ID)
-                    :
-                        -1;
-                if (Mouse1Index >= 0 || Mouse2Index >= 0)
-                  {
-                    final PointF ThisMouse1 =
-                        Mouse1Index >= 0 ?
-                            new PointF
-                              (
-                                TheEvent.getX(Mouse1Index),
-                                TheEvent.getY(Mouse1Index)
-                              )
-                        :
-                            null;
-                    final PointF ThisMouse2 =
-                        Mouse2Index >= 0 ?
-                            new PointF
-                             (
-                               TheEvent.getX(Mouse2Index),
-                               TheEvent.getY(Mouse2Index)
-                             )
-                         :
-                            null;
-                    if (ThisMouse1 != null || ThisMouse2 != null)
+                    final int PointerIndex =
+                            (TheEvent.getAction() & MotionEvent.ACTION_POINTER_ID_MASK)
+                        >>
+                            MotionEvent.ACTION_POINTER_ID_SHIFT;
+                    final int MouseID = TheEvent.getPointerId(PointerIndex);
+                    System.err.println("PuzzleView: semi-down pointer ID " + MouseID); /* debug */
+                    final PointF MousePos = new PointF
+                      (
+                        TheEvent.getX(PointerIndex),
+                        TheEvent.getY(PointerIndex)
+                      );
+                    if (LastMouse1 == null)
                       {
-                        final PointF ThisMouse =
-                            ThisMouse1 != null ?
-                                ThisMouse2 != null ?
-                                    new PointF
-                                      (
-                                        (ThisMouse1.x + ThisMouse2.x) / 2.0f,
-                                        (ThisMouse1.y + ThisMouse2.y) / 2.0f
-                                      )
-                                :
-                                    ThisMouse1
+                        Mouse1ID = MouseID;
+                        LastMouse1 = MousePos;
+                      }
+                    else if (LastMouse2 == null)
+                      {
+                        Mouse2ID = MouseID;
+                        LastMouse2 = MousePos;
+                      } /*if*/
+                  }
+                Handled = true;
+            break;
+            case MotionEvent.ACTION_MOVE:
+                if (LastMouse1 != null && DrawWhat != null)
+                  {
+                    final int Mouse1Index = TheEvent.findPointerIndex(Mouse1ID);
+                    final int Mouse2Index =
+                        LastMouse2 != null ?
+                            TheEvent.findPointerIndex(Mouse2ID)
+                        :
+                            -1;
+                    if (Mouse1Index >= 0 || Mouse2Index >= 0)
+                      {
+                        final PointF ThisMouse1 =
+                            Mouse1Index >= 0 ?
+                                new PointF
+                                  (
+                                    TheEvent.getX(Mouse1Index),
+                                    TheEvent.getY(Mouse1Index)
+                                  )
                             :
-                                ThisMouse2;
-                        final PointF LastMouse =
-                            ThisMouse1 != null ?
-                                ThisMouse2 != null ?
-                                    new PointF
-                                      (
-                                        (LastMouse1.x + LastMouse2.x) / 2.0f,
-                                        (LastMouse1.y + LastMouse2.y) / 2.0f
-                                      )
+                                null;
+                        final PointF ThisMouse2 =
+                            Mouse2Index >= 0 ?
+                                new PointF
+                                 (
+                                   TheEvent.getX(Mouse2Index),
+                                   TheEvent.getY(Mouse2Index)
+                                 )
+                             :
+                                null;
+                        if (ThisMouse1 != null || ThisMouse2 != null)
+                          {
+                            final PointF ThisMouse =
+                                ThisMouse1 != null ?
+                                    ThisMouse2 != null ?
+                                        new PointF
+                                          (
+                                            (ThisMouse1.x + ThisMouse2.x) / 2.0f,
+                                            (ThisMouse1.y + ThisMouse2.y) / 2.0f
+                                          )
+                                    :
+                                        ThisMouse1
                                 :
-                                    LastMouse1
-                            :
-                                LastMouse2;
-                        final ViewParms v = new ViewParms();
-                        if (v.ScaledViewWidth > v.ViewWidth && ThisMouse.x != LastMouse.x)
-                          {
-                            final float ScrollDelta =
-                                (ThisMouse.x - LastMouse.x) / (v.ViewWidth - v.ScaledViewWidth);
-                            ScrollX = Math.max(0.0f, Math.min(1.0f, ScrollX + ScrollDelta));
-                            super.invalidate();
-                          } /*if*/
-                        if (v.ScaledViewHeight > v.ViewHeight && ThisMouse.y != LastMouse.y)
-                          {
-                            final float ScrollDelta =
-                                (ThisMouse.y - LastMouse.y) / (v.ViewHeight - v.ScaledViewHeight);
-                            ScrollY = Math.max(0.0f, Math.min(1.0f, ScrollY + ScrollDelta));
-                            super.invalidate();
-                          } /*if*/
-                        if (Math.hypot(ThisMouse.x - LastMouse.x, ThisMouse.y - LastMouse.y) > 2.0)
-                          {
-                            MouseMoved = true;
-                          } /*if*/
-                        if (ThisMouse1 != null && ThisMouse2 != null)
-                          {
-                          /* pinch to zoom */
-                            final float LastDistance = (float)Math.hypot
-                              (
-                                LastMouse1.x - LastMouse2.x,
-                                LastMouse1.y - LastMouse2.y
-                              );
-                            final float ThisDistance = (float)Math.hypot
-                              (
-                                ThisMouse1.x - ThisMouse2.x,
-                                ThisMouse1.y - ThisMouse2.y
-                              );
-                            if
-                              (
-                                    LastDistance != 0.0f
-                                &&
-                                    ThisDistance != 0.0f
-                              )
+                                    ThisMouse2;
+                            final PointF LastMouse =
+                                ThisMouse1 != null ?
+                                    ThisMouse2 != null ?
+                                        new PointF
+                                          (
+                                            (LastMouse1.x + LastMouse2.x) / 2.0f,
+                                            (LastMouse1.y + LastMouse2.y) / 2.0f
+                                          )
+                                    :
+                                        LastMouse1
+                                :
+                                    LastMouse2;
+                            final ViewParms v = new ViewParms();
+                            if (v.ScaledViewWidth > v.ViewWidth && ThisMouse.x != LastMouse.x)
                               {
-                                ZoomBy(ThisDistance /  LastDistance);
+                                final float ScrollDelta =
+                                    (ThisMouse.x - LastMouse.x) / (v.ViewWidth - v.ScaledViewWidth);
+                                ScrollX = Math.max(0.0f, Math.min(1.0f, ScrollX + ScrollDelta));
+                                super.invalidate();
                               } /*if*/
+                            if (v.ScaledViewHeight > v.ViewHeight && ThisMouse.y != LastMouse.y)
+                              {
+                                final float ScrollDelta =
+                                    (ThisMouse.y - LastMouse.y) / (v.ViewHeight - v.ScaledViewHeight);
+                                ScrollY = Math.max(0.0f, Math.min(1.0f, ScrollY + ScrollDelta));
+                                super.invalidate();
+                              } /*if*/
+                            if (Math.hypot(ThisMouse.x - LastMouse.x, ThisMouse.y - LastMouse.y) > 2.0)
+                              {
+                                MouseMoved = true;
+                              } /*if*/
+                            if (ThisMouse1 != null && ThisMouse2 != null)
+                              {
+                              /* pinch to zoom */
+                                final float LastDistance = (float)Math.hypot
+                                  (
+                                    LastMouse1.x - LastMouse2.x,
+                                    LastMouse1.y - LastMouse2.y
+                                  );
+                                final float ThisDistance = (float)Math.hypot
+                                  (
+                                    ThisMouse1.x - ThisMouse2.x,
+                                    ThisMouse1.y - ThisMouse2.y
+                                  );
+                                if
+                                  (
+                                        LastDistance != 0.0f
+                                    &&
+                                        ThisDistance != 0.0f
+                                  )
+                                  {
+                                    ZoomBy(ThisDistance /  LastDistance);
+                                  } /*if*/
+                              } /*if*/
+                            LastMouse1 = ThisMouse1;
+                            LastMouse2 = ThisMouse2;
                           } /*if*/
-                        LastMouse1 = ThisMouse1;
-                        LastMouse2 = ThisMouse2;
                       } /*if*/
                   } /*if*/
-              } /*if*/
-            DoRebuild = true;
-            Handled = true;
-        break;
-        case MotionEvent.ACTION_POINTER_UP:
-            if (LastMouse2 != null)
+                DoRebuild = true;
+                Handled = true;
+            break;
+            case MotionEvent.ACTION_POINTER_UP:
+                if (LastMouse2 != null)
+                  {
+                    final int PointerIndex =
+                            (TheEvent.getAction() & MotionEvent.ACTION_POINTER_ID_MASK)
+                        >>
+                            MotionEvent.ACTION_POINTER_ID_SHIFT;
+                    final int PointerID = TheEvent.getPointerId(PointerIndex);
+                    System.err.println("PuzzleView: semi-up pointer ID " + PointerID); /* debug */
+                    if (PointerID == Mouse1ID)
+                      {
+                        Mouse1ID = Mouse2ID;
+                        LastMouse1 = LastMouse2;
+                        Mouse2ID = -1;
+                        LastMouse2 = null;
+                      }
+                    else if (PointerID == Mouse2ID)
+                      {
+                        Mouse2ID = -1;
+                        LastMouse2 = null;
+                      } /*if*/
+                  } /*if*/
+                DoRebuild = true;
+                Handled = true;
+            break;
+            case MotionEvent.ACTION_UP:
+                if (LastMouse1 != null && !MouseMoved)
+                  {
+                  /* move point that user tapped to centre of view if possible */
+                    final ViewParms v = new ViewParms();
+                    final PointF ViewOffset = ScrollOffset(v);
+                    final PointF NewCenter = new PointF
+                      (
+                        (DrawWhat.Bounds.right + DrawWhat.Bounds.left) / 2.0f,
+                        (DrawWhat.Bounds.bottom + DrawWhat.Bounds.top) / 2.0f
+                      );
+                    final PointF LastMouse =
+                        LastMouse2 != null ?
+                            new PointF
+                              (
+                                (LastMouse1.x + LastMouse2.x) / 2.0f,
+                                (LastMouse1.y + LastMouse2.y) / 2.0f
+                              )
+                        :
+                            LastMouse1;
+                    if (v.ScaledViewWidth > v.ViewWidth)
+                      {
+                        NewCenter.x =
+                                    (LastMouse.x - ViewOffset.x)
+                               /
+                                    v.ScaledViewWidth
+                               *
+                                    v.DrawWidth
+                            +
+                                DrawWhat.Bounds.left;
+                      } /*if*/
+                    if (v.ScaledViewHeight > v.ViewHeight)
+                      {
+                        NewCenter.y =
+                                    (LastMouse.y - ViewOffset.y)
+                               /
+                                    v.ScaledViewHeight
+                               *
+                                    v.DrawHeight
+                            +
+                                DrawWhat.Bounds.top;
+                      } /*if*/
+                    ScrollTo(NewCenter.x, NewCenter.y);
+                  } /*if*/
+                LastMouse1 = null;
+                LastMouse2 = null;
+                Mouse1ID = -1;
+                Mouse2ID = -1;
+                DoRebuild = true;
+                Handled = true;
+            break;
+              } /*switch*/
+            if (UseCaching && DoRebuild && BuildViewCache == null)
               {
-                final int PointerIndex =
-                        (TheEvent.getAction() & MotionEvent.ACTION_POINTER_ID_MASK)
-                    >>
-                        MotionEvent.ACTION_POINTER_ID_SHIFT;
-                final int PointerID = TheEvent.getPointerId(PointerIndex);
-                System.err.println("PuzzleView: semi-up pointer ID " + PointerID); /* debug */
-                if (PointerID == Mouse1ID)
-                  {
-                    Mouse1ID = Mouse2ID;
-                    LastMouse1 = LastMouse2;
-                    Mouse2ID = -1;
-                    LastMouse2 = null;
-                  }
-                else if (PointerID == Mouse2ID)
-                  {
-                    Mouse2ID = -1;
-                    LastMouse2 = null;
-                  } /*if*/
+              /* try to keep cache up to date to minimize appearance of
+                black borders in uncached areas during scrolling */
+                RebuildViewCache();
               } /*if*/
-            DoRebuild = true;
-            Handled = true;
-        break;
-        case MotionEvent.ACTION_UP:
-            if (LastMouse1 != null && !MouseMoved)
-              {
-              /* move point that user tapped to centre of view if possible */
-                final ViewParms v = new ViewParms();
-                final PointF ViewOffset = ScrollOffset(v);
-                final PointF NewCenter = new PointF
-                  (
-                    (DrawWhat.Bounds.right + DrawWhat.Bounds.left) / 2.0f,
-                    (DrawWhat.Bounds.bottom + DrawWhat.Bounds.top) / 2.0f
-                  );
-                final PointF LastMouse =
-                    LastMouse2 != null ?
-                        new PointF
-                          (
-                            (LastMouse1.x + LastMouse2.x) / 2.0f,
-                            (LastMouse1.y + LastMouse2.y) / 2.0f
-                          )
-                    :
-                        LastMouse1;
-                if (v.ScaledViewWidth > v.ViewWidth)
-                  {
-                    NewCenter.x =
-                                (LastMouse.x - ViewOffset.x)
-                           /
-                                v.ScaledViewWidth
-                           *
-                                v.DrawWidth
-                        +
-                            DrawWhat.Bounds.left;
-                  } /*if*/
-                if (v.ScaledViewHeight > v.ViewHeight)
-                  {
-                    NewCenter.y =
-                                (LastMouse.y - ViewOffset.y)
-                           /
-                                v.ScaledViewHeight
-                           *
-                                v.DrawHeight
-                        +
-                            DrawWhat.Bounds.top;
-                  } /*if*/
-                ScrollTo(NewCenter.x, NewCenter.y);
-              } /*if*/
-            LastMouse1 = null;
-            LastMouse2 = null;
-            Mouse1ID = -1;
-            Mouse2ID = -1;
-            DoRebuild = true;
-            Handled = true;
-        break;
-          } /*switch*/
-        if (UseCaching && DoRebuild && BuildViewCache == null)
-          {
-          /* try to keep cache up to date to minimize appearance of
-            black borders in uncached areas during scrolling */
-            RebuildViewCache();
           } /*if*/
         return
             Handled;
@@ -832,13 +991,7 @@ public class DrawView extends android.view.View
     @Override
     public void invalidate()
       {
-        if (DrawWhat != null)
-          {
-            if (UseCaching)
-              {
-                RebuildViewCache();
-              } /*if*/
-          } /*if*/
+        RecenterViewCache();
         super.invalidate();
       } /*invalidate*/
 
