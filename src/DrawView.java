@@ -482,9 +482,6 @@ public class DrawView extends android.view.View
                   {
                   /* first call, nobody has called RebuildViewCache yet, do it */
                     RebuildViewCache();
-                  /* Note, however, that CPU contention can slow down the cache rebuild
-                    if the user does a lot of rapid scrolling in the meantime. Would
-                    probably work better on multicore. */
                   } /*if*/
               } /*if*/
           } /*if*/
