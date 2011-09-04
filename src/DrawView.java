@@ -61,7 +61,6 @@ public class DrawView extends android.view.View
       /* how far to cache beyond visible bounds */
     protected ViewCacheBits ViewCache = null;
     protected ViewCacheBuilder BuildViewCache = null;
-    protected boolean CacheRebuildNeeded = false;
     boolean MouseMoved = false;
 
     protected class ViewCacheBuilder extends android.os.AsyncTask<Void, Integer, ViewCacheBits>
@@ -149,7 +148,6 @@ public class DrawView extends android.view.View
             DisposeViewCache();
             ViewCache = Result;
             BuildViewCache = null;
-            CacheRebuildNeeded = false;
             DrawView.super.invalidate();
           } /*onPostExecute*/
 
@@ -450,6 +448,24 @@ public class DrawView extends android.view.View
                 drawn directly on-screen: path strokes are slightly thicker
                 in the former case. Not sure what to do about this. */
                 g.drawBitmap(ViewCache.Bits, null, DestRect, null);
+                if
+                  (
+                        BuildViewCache == null
+                    &&
+                        (
+                            DestRect.left > 0
+                        ||
+                            DestRect.top > 0
+                        ||
+                            DestRect.right <= v.ViewWidth
+                        ||
+                            DestRect.bottom <= v.ViewHeight
+                        )
+                  )
+                  {
+                  /* cache doesn't completely cover view */
+                    RebuildViewCache();
+                  } /*if*/
               }
             else if (BuildViewCache != null)
               {
@@ -481,6 +497,7 @@ public class DrawView extends android.view.View
       )
       {
         boolean Handled = false;
+        boolean DoRebuild = false;
         switch (TheEvent.getAction() & (1 << MotionEvent.ACTION_POINTER_ID_SHIFT) - 1)
           {
         case MotionEvent.ACTION_DOWN:
@@ -576,14 +593,14 @@ public class DrawView extends android.view.View
                             final float ScrollDelta =
                                 (ThisMouse.x - LastMouse.x) / (v.ViewWidth - v.ScaledViewWidth);
                             ScrollX = Math.max(0.0f, Math.min(1.0f, ScrollX + ScrollDelta));
-                            NoCacheInvalidate();
+                            super.invalidate();
                           } /*if*/
                         if (v.ScaledViewHeight > v.ViewHeight && ThisMouse.y != LastMouse.y)
                           {
                             final float ScrollDelta =
                                 (ThisMouse.y - LastMouse.y) / (v.ViewHeight - v.ScaledViewHeight);
                             ScrollY = Math.max(0.0f, Math.min(1.0f, ScrollY + ScrollDelta));
-                            NoCacheInvalidate();
+                            super.invalidate();
                           } /*if*/
                         if (Math.hypot(ThisMouse.x - LastMouse.x, ThisMouse.y - LastMouse.y) > 2.0)
                           {
@@ -617,6 +634,7 @@ public class DrawView extends android.view.View
                       } /*if*/
                   } /*if*/
               } /*if*/
+            DoRebuild = true;
             Handled = true;
         break;
         case MotionEvent.ACTION_POINTER_UP:
@@ -641,6 +659,7 @@ public class DrawView extends android.view.View
                     LastMouse2 = null;
                   } /*if*/
               } /*if*/
+            DoRebuild = true;
             Handled = true;
         break;
         case MotionEvent.ACTION_UP:
@@ -691,13 +710,16 @@ public class DrawView extends android.view.View
             LastMouse2 = null;
             Mouse1ID = -1;
             Mouse2ID = -1;
-            if (CacheRebuildNeeded && BuildViewCache == null)
-              {
-                invalidate();
-              } /*if*/
+            DoRebuild = true;
             Handled = true;
         break;
           } /*switch*/
+        if (DoRebuild && BuildViewCache == null)
+          {
+          /* try to keep cache up to date to minimize appearance of
+            black borders in uncached areas during scrolling */
+            RebuildViewCache();
+          } /*if*/
         return
             Handled;
       } /*onTouchEvent*/
@@ -809,14 +831,6 @@ public class DrawView extends android.view.View
               } /*if*/
           } /*if*/
       } /*ScrollTo*/
-
-    protected void NoCacheInvalidate()
-      /* try to avoid “java.lang.OutOfMemoryError: bitmap size exceeds VM budget”
-        crashes by minimizing cache rebuild calls. */
-      {
-        CacheRebuildNeeded = UseCaching;
-        super.invalidate();
-      } /*NoCacheInvalidate*/
 
     @Override
     public void invalidate()
