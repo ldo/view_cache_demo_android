@@ -711,7 +711,7 @@ public class DrawView extends android.view.View
             Handled = true;
         break;
           } /*switch*/
-        if (DoRebuild && BuildViewCache == null)
+        if (UseCaching && DoRebuild && BuildViewCache == null)
           {
           /* try to keep cache up to date to minimize appearance of
             black borders in uncached areas during scrolling */
