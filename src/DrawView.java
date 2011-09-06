@@ -91,6 +91,7 @@ public class DrawView extends android.view.View
         public final float DrawWidth, DrawHeight;
         public final float ViewWidth, ViewHeight;
         public final float ScaledViewWidth, ScaledViewHeight;
+        public final float HorScrollLimit, VertScrollLimit;
         public final boolean CanScrollHoriz, CanScrollVert;
 
         public ViewParms
@@ -119,8 +120,10 @@ public class DrawView extends android.view.View
                 this.ScaledViewWidth = ScaledViewWidth;
                 this.ScaledViewHeight = ScaledViewHeight;
               } /*if*/
-            CanScrollHoriz = this.ScaledViewWidth > ViewWidth;
-            CanScrollVert = this.ScaledViewHeight > ViewHeight;
+            HorScrollLimit = this.ScaledViewWidth - ViewWidth;
+            VertScrollLimit = this.ScaledViewHeight - ViewHeight;
+            CanScrollHoriz = HorScrollLimit > 0;
+            CanScrollVert = VertScrollLimit > 0;
           } /*ViewParms*/
 
         public ViewParms()
@@ -142,11 +145,11 @@ public class DrawView extends android.view.View
             new PointF
               (
                 /*x =*/
-                        (v.ViewWidth - v.ScaledViewWidth)
+                        - v.HorScrollLimit
                     *
                         (v.CanScrollHoriz ? ScrollX : 0.5f),
                 /*y =*/
-                        (v.ViewHeight - v.ScaledViewHeight)
+                        - v.VertScrollLimit
                     *
                         (v.CanScrollVert ? ScrollY : 0.5f)
               );
@@ -647,14 +650,14 @@ public class DrawView extends android.view.View
                             if (v.CanScrollHoriz && ThisMouse.x != LastMouse.x)
                               {
                                 final float ScrollDelta =
-                                    (ThisMouse.x - LastMouse.x) / (v.ViewWidth - v.ScaledViewWidth);
+                                    (ThisMouse.x - LastMouse.x) / - v.HorScrollLimit;
                                 ScrollX = Math.max(0.0f, Math.min(1.0f, ScrollX + ScrollDelta));
                                 super.invalidate();
                               } /*if*/
                             if (v.CanScrollVert && ThisMouse.y != LastMouse.y)
                               {
                                 final float ScrollDelta =
-                                    (ThisMouse.y - LastMouse.y) / (v.ViewHeight - v.ScaledViewHeight);
+                                    (ThisMouse.y - LastMouse.y) / - v.VertScrollLimit;
                                 ScrollY = Math.max(0.0f, Math.min(1.0f, ScrollY + ScrollDelta));
                                 super.invalidate();
                               } /*if*/
@@ -955,7 +958,7 @@ public class DrawView extends android.view.View
                                 (
                                     v1.ViewWidth / 2.0f
                                 +
-                                    ScrollX * (v1.ScaledViewWidth - v1.ViewWidth)
+                                    ScrollX * v1.HorScrollLimit
                                 )
                             /
                                 v1.ScaledViewWidth
@@ -965,7 +968,7 @@ public class DrawView extends android.view.View
                             v2.ViewWidth / 2.0f
                         )
                     /
-                        (v2.ScaledViewWidth - v2.ViewWidth);
+                        v2.HorScrollLimit;
               } /*if*/
             if (v1.CanScrollVert && v2.CanScrollVert)
               {
@@ -974,7 +977,7 @@ public class DrawView extends android.view.View
                                 (
                                     v1.ViewHeight / 2.0f
                                 +
-                                    ScrollY * (v1.ScaledViewHeight - v1.ViewHeight)
+                                    ScrollY * v1.VertScrollLimit
                                 )
                             /
                                 v1.ScaledViewHeight
@@ -984,7 +987,7 @@ public class DrawView extends android.view.View
                             v2.ViewHeight / 2.0f
                         )
                     /
-                        (v2.ScaledViewHeight - v2.ViewHeight);
+                        v2.VertScrollLimit;
               } /*if*/
             ZoomFactor = NewZoomFactor;
             invalidate();
@@ -1013,7 +1016,7 @@ public class DrawView extends android.view.View
                             v.ViewWidth / 2.0f
                         )
                     /
-                        (v.ScaledViewWidth - v.ViewWidth);
+                        v.HorScrollLimit;
                 ScrollX = Math.max(0.0f, Math.min(1.0f, ScrollX));
               } /*if*/
             if (v.CanScrollVert)
@@ -1025,7 +1028,7 @@ public class DrawView extends android.view.View
                             v.ViewHeight / 2.0f
                         )
                     /
-                        (v.ScaledViewHeight - v.ViewHeight);
+                        v.VertScrollLimit;
                 ScrollY = Math.max(0.0f, Math.min(1.0f, ScrollY));
               } /*if*/
             if (OldScrollX != ScrollX || OldScrollY != ScrollY)
@@ -1058,7 +1061,7 @@ public class DrawView extends android.view.View
             v.CanScrollHoriz ?
                 (int)Math.round
                   (
-                    ScrollX * ScrollScale * (v.ScaledViewWidth - v.ViewWidth) /  v.ScaledViewWidth
+                    ScrollX * ScrollScale * v.HorScrollLimit / v.ScaledViewWidth
                   )
             :
                 0;
@@ -1087,7 +1090,7 @@ public class DrawView extends android.view.View
             v.CanScrollVert ?
                 (int)Math.round
                   (
-                    ScrollY * ScrollScale * (v.ScaledViewHeight - v.ViewHeight) / v.ScaledViewHeight
+                    ScrollY * ScrollScale * v.VertScrollLimit / v.ScaledViewHeight
                   )
             :
                 0;
