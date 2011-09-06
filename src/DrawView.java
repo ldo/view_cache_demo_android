@@ -435,7 +435,10 @@ public class DrawView extends android.view.View
               {
                 final double CurrentTime = System.currentTimeMillis() / 1000.0;
                 final float AnimAmt =
-                    AnimFunction.getInterpolation((float)((CurrentTime - StartTime) / (EndTime - StartTime)));
+                    AnimFunction.getInterpolation
+                      (
+                        (float)((CurrentTime - StartTime) / (EndTime - StartTime))
+                      );
                 ScrollTo
                   (
                     StartScroll.x + (EndScroll.x - StartScroll.x) * AnimAmt,
@@ -529,8 +532,18 @@ public class DrawView extends android.view.View
                                     /
                                         Attenuate
                               );
-                        EndScroll.x = Math.max(DrawWhat.Bounds.left, Math.min(EndScroll.x, DrawWhat.Bounds.right));
-                        EndScroll.y = Math.max(DrawWhat.Bounds.top, Math.min(EndScroll.y, DrawWhat.Bounds.bottom));
+                        EndScroll.x =
+                            Math.max
+                              (
+                                DrawWhat.Bounds.left,
+                                Math.min(EndScroll.x, DrawWhat.Bounds.right)
+                              );
+                        EndScroll.y =
+                            Math.max
+                              (
+                                DrawWhat.Bounds.top,
+                                Math.min(EndScroll.y, DrawWhat.Bounds.bottom)
+                              );
                         new ScrollAnimator
                           (
                             /*AnimFunction =*/ new android.view.animation.DecelerateInterpolator(),
@@ -661,7 +674,12 @@ public class DrawView extends android.view.View
                                 ScrollY = Math.max(0.0f, Math.min(1.0f, ScrollY + ScrollDelta));
                                 super.invalidate();
                               } /*if*/
-                            if (Math.hypot(ThisMouse.x - LastMouse.x, ThisMouse.y - LastMouse.y) > 2.0)
+                            if
+                              (
+                                    Math.hypot(ThisMouse.x - LastMouse.x, ThisMouse.y - LastMouse.y)
+                                >
+                                    2.0
+                              )
                               {
                                 MouseMoved = true;
                               } /*if*/
