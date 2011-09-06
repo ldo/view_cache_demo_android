@@ -27,7 +27,11 @@ public class DrawView extends android.view.View
   {
     protected android.content.Context Context;
     protected float ZoomFactor;
-    protected float ScrollX, ScrollY; /* [0.0 .. 1.0] */
+    protected float ScrollX, ScrollY;
+      /* range is [0.0 .. 1.0], such that 0 corresponds to left/top edge
+        of image being at left/top edge of view, 0.5 corresponds to middle
+        of image being in middle of view, and 1 corresponds to right/bottom
+        edge of image being at right/bottom edge of view */
     protected final float MaxZoomFactor = 32.0f;
     protected final float MinZoomFactor = 1.0f;
 
@@ -146,7 +150,9 @@ public class DrawView extends android.view.View
       /* state of the view cache */
       {
         public final Bitmap Bits; /* cached part of image */
-        public final RectF Bounds; /* such that (0, 0) maps to (DrawWhat.Bounds.left, DrawWhat.Bounds.top) but scaled to view bounds at current zoom */
+        public final RectF Bounds;
+          /* such that (0, 0) maps to (DrawWhat.Bounds.left, DrawWhat.Bounds.top)
+            but scaled to view bounds at current zoom */
 
         public ViewCacheBits
           (
@@ -889,6 +895,7 @@ public class DrawView extends android.view.View
       )
       {
         this.DrawWhat = DrawWhat;
+      /* fixme: need to rebuild cache and redraw if I allow user to change image on the fly */
       } /*SetDrawer*/
 
     public boolean GetUseCaching()
@@ -1023,7 +1030,7 @@ public class DrawView extends android.view.View
     in the constructors, above) will cause fading edges to appear.
 */
 
-    protected static final int ScrollScale = 1000;
+    protected static final int ScrollScale = 1000; /* arbitrary units */
 
     @Override
     protected int computeHorizontalScrollExtent()
@@ -1039,7 +1046,10 @@ public class DrawView extends android.view.View
         final ViewParms v = new ViewParms();
         return
             v.ScaledViewWidth > v.ViewWidth ?
-                (int)Math.round(ScrollX * ScrollScale * (v.ScaledViewWidth - v.ViewWidth) /  v.ScaledViewWidth)
+                (int)Math.round
+                  (
+                    ScrollX * ScrollScale * (v.ScaledViewWidth - v.ViewWidth) /  v.ScaledViewWidth
+                  )
             :
                 0;
       } /*computeHorizontalScrollOffset*/
@@ -1065,7 +1075,10 @@ public class DrawView extends android.view.View
         final ViewParms v = new ViewParms();
         return
             v.ScaledViewHeight > v.ViewHeight ?
-                (int)Math.round(ScrollY * ScrollScale * (v.ScaledViewHeight - v.ViewHeight) / v.ScaledViewHeight)
+                (int)Math.round
+                  (
+                    ScrollY * ScrollScale * (v.ScaledViewHeight - v.ViewHeight) / v.ScaledViewHeight
+                  )
             :
                 0;
       } /*computeVerticalScrollOffset*/
