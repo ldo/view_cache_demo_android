@@ -119,8 +119,8 @@ public class DrawView extends android.view.View
                 this.ScaledViewWidth = ScaledViewWidth;
                 this.ScaledViewHeight = ScaledViewHeight;
               } /*if*/
-            CanScrollHoriz = ScaledViewWidth > ViewWidth;
-            CanScrollVert = ScaledViewHeight > ViewHeight;
+            CanScrollHoriz = this.ScaledViewWidth > ViewWidth;
+            CanScrollVert = this.ScaledViewHeight > ViewHeight;
           } /*ViewParms*/
 
         public ViewParms()
