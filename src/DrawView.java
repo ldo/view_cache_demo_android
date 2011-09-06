@@ -33,100 +33,120 @@ public class DrawView extends android.view.View
 
     protected Drawer DrawWhat;
     protected boolean UseCaching = true;
-    protected android.view.GestureDetector FlingDetector =
-        new android.view.GestureDetector
+
+    protected void Init
+      (
+        android.content.Context Context
+      )
+      /* common code for all constructors */
+      {
+        this.Context = Context;
+        ZoomFactor = 1.0f;
+        ScrollX = 0.5f;
+        ScrollY = 0.5f;
+        setHorizontalFadingEdgeEnabled(true);
+        setVerticalFadingEdgeEnabled(true);
+      } /*Init*/
+
+    public DrawView
+      (
+        android.content.Context Context
+      )
+      {
+        super(Context);
+        Init(Context);
+      } /*DrawView*/
+
+    public DrawView
+      (
+        android.content.Context Context,
+        android.util.AttributeSet Attributes
+      )
+      {
+        this(Context, Attributes, 0);
+      } /*DrawView*/
+
+    public DrawView
+      (
+        android.content.Context Context,
+        android.util.AttributeSet Attributes,
+        int DefaultStyle
+      )
+      {
+        super(Context, Attributes, DefaultStyle);
+        Init(Context);
+      } /*DrawView*/
+
+/*
+    Mapping between image coordinates and view coordinates
+*/
+
+    protected class ViewParms
+      /* parameters for scaling and positioning image display */
+      {
+        public final float DrawWidth, DrawHeight;
+        public final float ViewWidth, ViewHeight;
+        public float ScaledViewWidth, ScaledViewHeight;
+
+        public ViewParms
           (
-            Context,
-            new android.view.GestureDetector.SimpleOnGestureListener()
+            float ZoomFactor
+          )
+          {
+            DrawWidth = DrawWhat.Bounds.right - DrawWhat.Bounds.left;
+            DrawHeight = DrawWhat.Bounds.bottom - DrawWhat.Bounds.top;
+            ViewWidth = getWidth();
+            ViewHeight = getHeight();
+            ScaledViewWidth = ViewWidth * ZoomFactor;
+            ScaledViewHeight = ViewHeight * ZoomFactor;
+            if (ScaledViewWidth > ScaledViewHeight * DrawWidth / DrawHeight)
               {
-                @Override
-                public boolean onFling
-                  (
-                    MotionEvent DownEvent,
-                    MotionEvent UpEvent,
-                    float XVelocity,
-                    float YVelocity
-                  )
-                  {
-                    final ViewParms v = new ViewParms();
-                    final PointF ViewOffset = ScrollOffset(v);
-                    final boolean DoFling =
-                            v.ScaledViewWidth > v.ViewWidth && XVelocity != 0
-                        ||
-                            v.ScaledViewHeight > v.ViewHeight && YVelocity != 0;
-                    if (DoFling)
-                      {
-                        final double CurrentTime = System.currentTimeMillis() / 1000.0;
-                        final float ScrollDuration =
-                                (float)Math.hypot(XVelocity, YVelocity)
-                            /
-                                (float)Math.hypot(v.ViewWidth, v.ViewHeight);
-                        final float Attenuate = 2.0f;
-                        final PointF StartScroll = /* current centre point in image */
-                            new PointF
-                              (
-                                    DrawWhat.Bounds.left
-                                +
-                                        (v.ViewWidth / 2.0f - ViewOffset.x)
-                                    /
-                                        v.ScaledViewWidth
-                                    *
-                                        v.DrawWidth,
-                                    DrawWhat.Bounds.top
-                                +
-                                        (v.ViewHeight / 2.0f - ViewOffset.y)
-                                    /
-                                        v.ScaledViewHeight
-                                    *
-                                        v.DrawHeight
-                              );
-                        final PointF EndScroll =
-                            new PointF
-                              (
-                                    StartScroll.x
-                                -
-                                        XVelocity
-                                    /
-                                        v.ScaledViewWidth
-                                    *
-                                        v.DrawWidth
-                                    *
-                                        ScrollDuration
-                                    /
-                                        Attenuate,
-                                    StartScroll.y
-                                -
-                                        YVelocity
-                                    /
-                                        v.ScaledViewHeight
-                                    *
-                                        v.DrawWidth
-                                    *
-                                        ScrollDuration
-                                    /
-                                        Attenuate
-                              );
-                        EndScroll.x = Math.max(DrawWhat.Bounds.left, Math.min(EndScroll.x, DrawWhat.Bounds.right));
-                        EndScroll.y = Math.max(DrawWhat.Bounds.top, Math.min(EndScroll.y, DrawWhat.Bounds.bottom));
-                        new ScrollAnimator
-                          (
-                            /*AnimFunction =*/ new android.view.animation.DecelerateInterpolator(),
-                            /*StartTime =*/ CurrentTime,
-                            /*EndTime =*/ CurrentTime + ScrollDuration,
-                            /*StartScroll =*/ StartScroll,
-                            /*EndScroll =*/ EndScroll
-                          );
-                      } /*if*/
-                    return
-                        DoFling;
-                  } /*onFling*/
-              } /*GestureDetector.SimpleOnGestureListener*/
-          );
+                ScaledViewWidth = ScaledViewHeight * DrawWidth / DrawHeight;
+              }
+            else if (ScaledViewHeight > ScaledViewWidth * DrawHeight / DrawWidth)
+              {
+                ScaledViewHeight = ScaledViewWidth * DrawHeight / DrawWidth;
+              } /*if*/
+          } /*ViewParms*/
+
+        public ViewParms()
+          {
+            this(DrawView.this.ZoomFactor);
+          } /*ViewParms*/
+
+      } /*ViewParms*/
+
+    protected PointF ScrollOffset
+      (
+        ViewParms v
+      )
+      /* returns the amounts by which to offset the scaled view as
+        computed from the current scroll values. Note both components
+        will be non-positive. */
+      {
+        return
+            new PointF
+              (
+                /*x =*/
+                        (v.ViewWidth - v.ScaledViewWidth)
+                    *
+                        (v.ScaledViewWidth >= v.ViewWidth ? ScrollX : 0.5f),
+                /*y =*/
+                        (v.ViewHeight - v.ScaledViewHeight)
+                    *
+                        (v.ScaledViewHeight >= v.ViewHeight ? ScrollY : 0.5f)
+              );
+      } /*ScrollOffset*/
+
+/*
+    View cache management & drawing
+*/
 
     protected static class ViewCacheBits
+      /* state of the view cache */
       {
-        public final Bitmap Bits;
-        public final RectF Bounds;
+        public final Bitmap Bits; /* cached part of image */
+        public final RectF Bounds; /* such that (0, 0) maps to (DrawWhat.Bounds.left, DrawWhat.Bounds.top) but scaled to view bounds at current zoom */
 
         public ViewCacheBits
           (
@@ -140,19 +160,13 @@ public class DrawView extends android.view.View
 
       } /*ViewCacheBits*/
 
-    protected PointF
-        LastMouse1 = null,
-        LastMouse2 = null;
-    protected int
-        Mouse1ID = -1,
-        Mouse2ID = -1;
     protected final float MaxCacheFactor = 2.0f;
-      /* how far to cache beyond visible bounds */
+      /* how far to cache beyond visible bounds, relative to the bounds */
     protected ViewCacheBits ViewCache = null;
     protected ViewCacheBuilder BuildViewCache = null;
-    boolean MouseMoved = false;
 
     protected class ViewCacheBuilder extends android.os.AsyncTask<Void, Integer, ViewCacheBits>
+      /* background rebuilding of the view cache */
       {
         protected RectF ScaledViewBounds, CacheBounds;
 
@@ -242,6 +256,136 @@ public class DrawView extends android.view.View
 
       } /*ViewCacheBuilder*/
 
+    protected void DisposeViewCache()
+      {
+        if (ViewCache != null)
+          {
+            ViewCache.Bits.recycle();
+            ViewCache = null;
+          } /*if*/
+      } /*DisposeViewCache*/
+
+    protected void CancelViewCacheBuild()
+      {
+        if (BuildViewCache != null)
+          {
+            BuildViewCache.cancel
+              (
+                false
+                  /* not true to allow onCancelled to recycle bitmap */
+              );
+            BuildViewCache = null;
+          } /*if*/
+      } /*CancelViewCacheBuild*/
+
+    public void ForgetViewCache()
+      {
+        CancelViewCacheBuild();
+        DisposeViewCache();
+      } /*ForgetViewCache*/
+
+    protected void RebuildViewCache()
+      {
+        CancelViewCacheBuild();
+        BuildViewCache = new ViewCacheBuilder();
+        BuildViewCache.execute((Void)null);
+      } /*RebuildViewCache*/
+
+    protected void RecenterViewCache()
+      /* regenerates the cache as necessary to ensure it completely covers
+        currently-visible view. */
+      {
+        if
+          (
+                UseCaching
+            &&
+                BuildViewCache == null
+            &&
+                ViewCache != null
+          )
+          {
+            final ViewParms v = new ViewParms();
+            final PointF ViewOffset = ScrollOffset(v);
+            final RectF DestRect = new RectF(ViewCache.Bounds);
+            DestRect.offset(ViewOffset.x, ViewOffset.y);
+            if
+                (
+                    DestRect.left > 0
+                ||
+                    DestRect.top > 0
+                ||
+                    DestRect.right <= v.ViewWidth
+                ||
+                    DestRect.bottom <= v.ViewHeight
+                )
+              {
+              /* cache doesn't completely cover view */
+                RebuildViewCache();
+              } /*if*/
+          } /*if*/
+      } /*RecenterViewCache*/
+
+    @Override
+    public void onDraw
+      (
+        android.graphics.Canvas g
+      )
+      {
+        if (DrawWhat != null)
+          {
+            final ViewParms v = new ViewParms();
+            final PointF ViewOffset = ScrollOffset(v);
+            if (ViewCache != null)
+              {
+              /* cache available, use it */
+                final RectF DestRect = new RectF(ViewCache.Bounds);
+                DestRect.offset(ViewOffset.x, ViewOffset.y);
+              /* Unfortunately, the sample image doesn't look exactly the same
+                when drawn offscreen and then copied on-screen, versus being
+                drawn directly on-screen: path strokes are slightly thicker
+                in the former case. Not sure what to do about this. */
+                g.drawBitmap(ViewCache.Bits, null, DestRect, null);
+                RecenterViewCache();
+              }
+            else if (BuildViewCache != null)
+              {
+              /* cache rebuild in progress, wait for it to finish before actually drawing,
+                to avoid CPU contention that slows things down */
+              }
+            else
+              {
+              /* do it the slow way */
+                final RectF DestRect = new RectF(0, 0, v.ScaledViewWidth, v.ScaledViewHeight);
+                DestRect.offset(ViewOffset.x, ViewOffset.y);
+                DrawWhat.Draw(g, DestRect);
+                if (UseCaching && BuildViewCache == null)
+                  {
+                  /* first call, nobody has called RebuildViewCache yet, do it */
+                    RebuildViewCache();
+                  } /*if*/
+              } /*if*/
+          } /*if*/
+      } /*onDraw*/
+
+    @Override
+    public void invalidate()
+      {
+        RecenterViewCache();
+        super.invalidate();
+      } /*invalidate*/
+
+/*
+    Interaction handling
+*/
+
+    protected PointF
+        LastMouse1 = null,
+        LastMouse2 = null;
+    protected int
+        Mouse1ID = -1,
+        Mouse2ID = -1;
+    protected boolean MouseMoved = false;
+
     protected class ScrollAnimator implements Runnable
       {
         final android.view.animation.Interpolator AnimFunction;
@@ -293,354 +437,95 @@ public class DrawView extends android.view.View
 
     private ScrollAnimator CurrentAnim = null;
 
-    protected void Init
-      (
-        android.content.Context Context
-      )
-      /* common code for all constructors */
-      {
-        this.Context = Context;
-        ZoomFactor = 1.0f;
-        ScrollX = 0.5f;
-        ScrollY = 0.5f;
-        setHorizontalFadingEdgeEnabled(true);
-        setVerticalFadingEdgeEnabled(true);
-      } /*Init*/
-
-    public DrawView
-      (
-        android.content.Context Context
-      )
-      {
-        super(Context);
-        Init(Context);
-      } /*DrawView*/
-
-    public DrawView
-      (
-        android.content.Context Context,
-        android.util.AttributeSet Attributes
-      )
-      {
-        this(Context, Attributes, 0);
-      } /*DrawView*/
-
-    public DrawView
-      (
-        android.content.Context Context,
-        android.util.AttributeSet Attributes,
-        int DefaultStyle
-      )
-      {
-        super(Context, Attributes, DefaultStyle);
-        Init(Context);
-      } /*DrawView*/
-
-  /*
-    Implementation of saving/restoring instance state. Doing this
-    allows me to transparently restore scroll/zoom state if system
-    needs to kill me while I'm in the background, or on an orientation
-    change while I'm in the foreground.
-
-    Notes: View.onSaveInstanceState returns AbsSavedState.EMPTY_STATE,
-    and View.onRestoreInstanceState expects to be passed this. Also,
-    both superclass methods MUST be called in my overrides (the docs
-    don't make this clear).
-  */
-
-    protected static class SavedDrawViewState extends android.view.AbsSavedState
-      {
-        public static android.os.Parcelable.Creator<SavedDrawViewState> CREATOR =
-            new android.os.Parcelable.Creator<SavedDrawViewState>()
+    protected android.view.GestureDetector FlingDetector =
+        new android.view.GestureDetector
+          (
+            Context,
+            new android.view.GestureDetector.SimpleOnGestureListener()
               {
-                public SavedDrawViewState createFromParcel
+                @Override
+                public boolean onFling
                   (
-                    android.os.Parcel SavedState
+                    MotionEvent DownEvent,
+                    MotionEvent UpEvent,
+                    float XVelocity,
+                    float YVelocity
                   )
                   {
-                    System.err.println("DrawView.SavedDrawViewState.createFromParcel"); /* debug */
-                    final android.view.AbsSavedState SuperState =
-                        android.view.AbsSavedState.CREATOR.createFromParcel(SavedState);
-                    final android.os.Bundle MyState = SavedState.readBundle();
-                    return
-                        new SavedDrawViewState
+                    final ViewParms v = new ViewParms();
+                    final PointF ViewOffset = ScrollOffset(v);
+                    final boolean DoFling =
+                            v.ScaledViewWidth > v.ViewWidth && XVelocity != 0
+                        ||
+                            v.ScaledViewHeight > v.ViewHeight && YVelocity != 0;
+                    if (DoFling)
+                      {
+                        final double CurrentTime = System.currentTimeMillis() / 1000.0;
+                        final float ScrollDuration =
+                                (float)Math.hypot(XVelocity, YVelocity)
+                            /
+                                (float)Math.hypot(v.ViewWidth, v.ViewHeight);
+                        final float Attenuate = 2.0f;
+                        final PointF StartScroll = /* current centre point in image */
+                            new PointF
+                              (
+                                    DrawWhat.Bounds.left
+                                +
+                                        (v.ViewWidth / 2.0f - ViewOffset.x)
+                                    /
+                                        v.ScaledViewWidth
+                                    *
+                                        v.DrawWidth,
+                                    DrawWhat.Bounds.top
+                                +
+                                        (v.ViewHeight / 2.0f - ViewOffset.y)
+                                    /
+                                        v.ScaledViewHeight
+                                    *
+                                        v.DrawHeight
+                              );
+                        final PointF EndScroll =
+                            new PointF
+                              (
+                                    StartScroll.x
+                                -
+                                        XVelocity
+                                    /
+                                        v.ScaledViewWidth
+                                    *
+                                        v.DrawWidth
+                                    *
+                                        ScrollDuration
+                                    /
+                                        Attenuate,
+                                    StartScroll.y
+                                -
+                                        YVelocity
+                                    /
+                                        v.ScaledViewHeight
+                                    *
+                                        v.DrawWidth
+                                    *
+                                        ScrollDuration
+                                    /
+                                        Attenuate
+                              );
+                        EndScroll.x = Math.max(DrawWhat.Bounds.left, Math.min(EndScroll.x, DrawWhat.Bounds.right));
+                        EndScroll.y = Math.max(DrawWhat.Bounds.top, Math.min(EndScroll.y, DrawWhat.Bounds.bottom));
+                        new ScrollAnimator
                           (
-                            SuperState,
-                            MyState.getFloat("ScrollX", 0.5f),
-                            MyState.getFloat("ScrollY", 0.5f),
-                            MyState.getFloat("ZoomFactor", 1.0f)
+                            /*AnimFunction =*/ new android.view.animation.DecelerateInterpolator(),
+                            /*StartTime =*/ CurrentTime,
+                            /*EndTime =*/ CurrentTime + ScrollDuration,
+                            /*StartScroll =*/ StartScroll,
+                            /*EndScroll =*/ EndScroll
                           );
-                  } /*createFromParcel*/
-
-                public SavedDrawViewState[] newArray
-                  (
-                    int NrElts
-                  )
-                  {
+                      } /*if*/
                     return
-                        new SavedDrawViewState[NrElts];
-                  } /*newArray*/
-              } /*Parcelable.Creator*/;
-
-        public final android.os.Parcelable SuperState;
-      /* state that I'm actually interested in saving/restoring: */
-        public final float ScrollX, ScrollY, ZoomFactor;
-
-        public SavedDrawViewState
-          (
-            android.os.Parcelable SuperState,
-            float ScrollX,
-            float ScrollY,
-            float ZoomFactor
-          )
-          {
-            super(SuperState);
-            this.SuperState = SuperState;
-            this.ScrollX = ScrollX;
-            this.ScrollY = ScrollY;
-            this.ZoomFactor = ZoomFactor;
-          } /*SavedDrawViewState*/
-
-        public void writeToParcel
-          (
-            android.os.Parcel SavedState,
-            int Flags
-          )
-          {
-            System.err.println("DrawView.SavedDrawViewState.writeToParcel"); /* debug */
-            super.writeToParcel(SavedState, Flags);
-          /* put my state in a Bundle, where each item is associated with a
-            keyword name (unlike the Parcel itself, where items are identified
-            by order). I think this makes things easier to understand. */
-            final android.os.Bundle MyState = new android.os.Bundle();
-            MyState.putFloat("ScrollX", ScrollX);
-            MyState.putFloat("ScrollY", ScrollY);
-            MyState.putFloat("ZoomFactor", ZoomFactor);
-            SavedState.writeBundle(MyState);
-          } /*writeToParcel*/
-
-      } /*SavedDrawViewState*/
-
-    @Override
-    public android.os.Parcelable onSaveInstanceState()
-      {
-        System.err.println("DrawView called to save instance state"); /* debug */
-        return
-            new SavedDrawViewState
-              (
-                super.onSaveInstanceState(),
-                ScrollX,
-                ScrollY,
-                ZoomFactor
-              );
-      } /*onSaveInstanceState*/
-
-    @Override
-    public void onRestoreInstanceState
-      (
-        android.os.Parcelable SavedState
-      )
-      {
-        System.err.println("DrawView called to restore instance state " + (SavedState != null ? "non-null" : "null")); /* debug */
-        final SavedDrawViewState MyState = (SavedDrawViewState)SavedState;
-        super.onRestoreInstanceState(MyState.SuperState);
-        ScrollX = MyState.ScrollX;
-        ScrollY = MyState.ScrollY;
-        ZoomFactor = MyState.ZoomFactor;
-        invalidate();
-      } /*onRestoreInstanceState*/
-
-    public void SetDrawer
-      (
-        Drawer DrawWhat
-      )
-      {
-        this.DrawWhat = DrawWhat;
-      } /*SetDrawer*/
-
-    public boolean GetUseCaching()
-      {
-        return
-            UseCaching;
-      } /*GetUseCaching*/
-
-    public void SetUseCaching
-      (
-        boolean NewUseCaching
-      )
-      {
-        UseCaching = NewUseCaching;
-        if (!UseCaching)
-          {
-            ForgetViewCache();
-          } /*if*/
-      } /*SetUseCaching*/
-
-    protected void DisposeViewCache()
-      {
-        if (ViewCache != null)
-          {
-            ViewCache.Bits.recycle();
-            ViewCache = null;
-          } /*if*/
-      } /*DisposeViewCache*/
-
-    protected void CancelViewCacheBuild()
-      {
-        if (BuildViewCache != null)
-          {
-            BuildViewCache.cancel
-              (
-                false
-                  /* not true to allow onCancelled to recycle bitmap */
-              );
-            BuildViewCache = null;
-          } /*if*/
-      } /*CancelViewCacheBuild*/
-
-    public void ForgetViewCache()
-      {
-        CancelViewCacheBuild();
-        DisposeViewCache();
-      } /*ForgetViewCache*/
-
-    protected void RebuildViewCache()
-      {
-        CancelViewCacheBuild();
-        BuildViewCache = new ViewCacheBuilder();
-        BuildViewCache.execute((Void)null);
-      } /*RebuildViewCache*/
-
-    protected void RecenterViewCache()
-      {
-        if
-          (
-                UseCaching
-            &&
-                BuildViewCache == null
-            &&
-                ViewCache != null
-          )
-          {
-            final ViewParms v = new ViewParms();
-            final PointF ViewOffset = ScrollOffset(v);
-            final RectF DestRect = new RectF(ViewCache.Bounds);
-            DestRect.offset(ViewOffset.x, ViewOffset.y);
-            if
-                (
-                    DestRect.left > 0
-                ||
-                    DestRect.top > 0
-                ||
-                    DestRect.right <= v.ViewWidth
-                ||
-                    DestRect.bottom <= v.ViewHeight
-                )
-              {
-              /* cache doesn't completely cover view */
-                RebuildViewCache();
-              } /*if*/
-          } /*if*/
-      } /*RecenterViewCache*/
-
-    protected class ViewParms
-      /* parameters for scaling and positioning map display */
-      {
-        public final float DrawWidth, DrawHeight;
-        public final float ViewWidth, ViewHeight;
-        public float ScaledViewWidth, ScaledViewHeight;
-
-        public ViewParms
-          (
-            float ZoomFactor
-          )
-          {
-            DrawWidth = DrawWhat.Bounds.right - DrawWhat.Bounds.left;
-            DrawHeight = DrawWhat.Bounds.bottom - DrawWhat.Bounds.top;
-            ViewWidth = getWidth();
-            ViewHeight = getHeight();
-            ScaledViewWidth = ViewWidth * ZoomFactor;
-            ScaledViewHeight = ViewHeight * ZoomFactor;
-            if (ScaledViewWidth > ScaledViewHeight * DrawWidth / DrawHeight)
-              {
-                ScaledViewWidth = ScaledViewHeight * DrawWidth / DrawHeight;
-              }
-            else if (ScaledViewHeight > ScaledViewWidth * DrawHeight / DrawWidth)
-              {
-                ScaledViewHeight = ScaledViewWidth * DrawHeight / DrawWidth;
-              } /*if*/
-          } /*ViewParms*/
-
-        public ViewParms()
-          {
-            this(DrawView.this.ZoomFactor);
-          } /*ViewParms*/
-
-      } /*ViewParms*/
-
-    protected PointF ScrollOffset
-      (
-        ViewParms v
-      )
-      /* returns the amounts by which to offset the scaled view as
-        computed from the current scroll values. Note both components
-        will be non-positive. */
-      {
-        return
-            new PointF
-              (
-                /*x =*/
-                        (v.ViewWidth - v.ScaledViewWidth)
-                    *
-                        (v.ScaledViewWidth >= v.ViewWidth ? ScrollX : 0.5f),
-                /*y =*/
-                        (v.ViewHeight - v.ScaledViewHeight)
-                    *
-                        (v.ScaledViewHeight >= v.ViewHeight ? ScrollY : 0.5f)
-              );
-      } /*ScrollOffset*/
-
-    @Override
-    public void onDraw
-      (
-        android.graphics.Canvas g
-      )
-      {
-        if (DrawWhat != null)
-          {
-            final ViewParms v = new ViewParms();
-            final PointF ViewOffset = ScrollOffset(v);
-            if (ViewCache != null)
-              {
-              /* cache available, use it */
-                final RectF DestRect = new RectF(ViewCache.Bounds);
-                DestRect.offset(ViewOffset.x, ViewOffset.y);
-              /* Unfortunately, the sample image doesn't look exactly the same
-                when drawn offscreen and then copied on-screen, versus being
-                drawn directly on-screen: path strokes are slightly thicker
-                in the former case. Not sure what to do about this. */
-                g.drawBitmap(ViewCache.Bits, null, DestRect, null);
-                RecenterViewCache();
-              }
-            else if (BuildViewCache != null)
-              {
-              /* cache rebuild in progress, wait for it to finish before actually drawing,
-                to avoid CPU contention that slows things down */
-              }
-            else
-              {
-              /* do it the slow way */
-                final RectF DestRect = new RectF(0, 0, v.ScaledViewWidth, v.ScaledViewHeight);
-                DestRect.offset(ViewOffset.x, ViewOffset.y);
-                DrawWhat.Draw(g, DestRect);
-                if (UseCaching && BuildViewCache == null)
-                  {
-                  /* first call, nobody has called RebuildViewCache yet, do it */
-                    RebuildViewCache();
-                  } /*if*/
-              } /*if*/
-          } /*if*/
-      } /*onDraw*/
+                        DoFling;
+                  } /*onFling*/
+              } /*GestureDetector.SimpleOnGestureListener*/
+          );
 
     @Override
     public boolean onTouchEvent
@@ -880,6 +765,150 @@ public class DrawView extends android.view.View
             Handled;
       } /*onTouchEvent*/
 
+/*
+    Implementation of saving/restoring instance state. Doing this
+    allows me to transparently restore scroll/zoom state if system
+    needs to kill me while I'm in the background, or on an orientation
+    change while I'm in the foreground.
+
+    Notes: View.onSaveInstanceState returns AbsSavedState.EMPTY_STATE,
+    and View.onRestoreInstanceState expects to be passed this. Also,
+    both superclass methods MUST be called in my overrides (the docs
+    don't make this clear).
+*/
+
+    protected static class SavedDrawViewState extends android.view.AbsSavedState
+      {
+        public static android.os.Parcelable.Creator<SavedDrawViewState> CREATOR =
+            new android.os.Parcelable.Creator<SavedDrawViewState>()
+              {
+                public SavedDrawViewState createFromParcel
+                  (
+                    android.os.Parcel SavedState
+                  )
+                  {
+                    System.err.println("DrawView.SavedDrawViewState.createFromParcel"); /* debug */
+                    final android.view.AbsSavedState SuperState =
+                        android.view.AbsSavedState.CREATOR.createFromParcel(SavedState);
+                    final android.os.Bundle MyState = SavedState.readBundle();
+                    return
+                        new SavedDrawViewState
+                          (
+                            SuperState,
+                            MyState.getFloat("ScrollX", 0.5f),
+                            MyState.getFloat("ScrollY", 0.5f),
+                            MyState.getFloat("ZoomFactor", 1.0f)
+                          );
+                  } /*createFromParcel*/
+
+                public SavedDrawViewState[] newArray
+                  (
+                    int NrElts
+                  )
+                  {
+                    return
+                        new SavedDrawViewState[NrElts];
+                  } /*newArray*/
+              } /*Parcelable.Creator*/;
+
+        public final android.os.Parcelable SuperState;
+      /* state that I'm actually interested in saving/restoring: */
+        public final float ScrollX, ScrollY, ZoomFactor;
+
+        public SavedDrawViewState
+          (
+            android.os.Parcelable SuperState,
+            float ScrollX,
+            float ScrollY,
+            float ZoomFactor
+          )
+          {
+            super(SuperState);
+            this.SuperState = SuperState;
+            this.ScrollX = ScrollX;
+            this.ScrollY = ScrollY;
+            this.ZoomFactor = ZoomFactor;
+          } /*SavedDrawViewState*/
+
+        public void writeToParcel
+          (
+            android.os.Parcel SavedState,
+            int Flags
+          )
+          {
+            System.err.println("DrawView.SavedDrawViewState.writeToParcel"); /* debug */
+            super.writeToParcel(SavedState, Flags);
+          /* put my state in a Bundle, where each item is associated with a
+            keyword name (unlike the Parcel itself, where items are identified
+            by order). I think this makes things easier to understand. */
+            final android.os.Bundle MyState = new android.os.Bundle();
+            MyState.putFloat("ScrollX", ScrollX);
+            MyState.putFloat("ScrollY", ScrollY);
+            MyState.putFloat("ZoomFactor", ZoomFactor);
+            SavedState.writeBundle(MyState);
+          } /*writeToParcel*/
+
+      } /*SavedDrawViewState*/
+
+    @Override
+    public android.os.Parcelable onSaveInstanceState()
+      {
+        System.err.println("DrawView called to save instance state"); /* debug */
+        return
+            new SavedDrawViewState
+              (
+                super.onSaveInstanceState(),
+                ScrollX,
+                ScrollY,
+                ZoomFactor
+              );
+      } /*onSaveInstanceState*/
+
+    @Override
+    public void onRestoreInstanceState
+      (
+        android.os.Parcelable SavedState
+      )
+      {
+        System.err.println("DrawView called to restore instance state " + (SavedState != null ? "non-null" : "null")); /* debug */
+        final SavedDrawViewState MyState = (SavedDrawViewState)SavedState;
+        super.onRestoreInstanceState(MyState.SuperState);
+        ScrollX = MyState.ScrollX;
+        ScrollY = MyState.ScrollY;
+        ZoomFactor = MyState.ZoomFactor;
+        invalidate();
+      } /*onRestoreInstanceState*/
+
+/*
+    public widget-control methods
+*/
+
+    public void SetDrawer
+      (
+        Drawer DrawWhat
+      )
+      {
+        this.DrawWhat = DrawWhat;
+      } /*SetDrawer*/
+
+    public boolean GetUseCaching()
+      {
+        return
+            UseCaching;
+      } /*GetUseCaching*/
+
+    public void SetUseCaching
+      (
+        boolean NewUseCaching
+      )
+      {
+        UseCaching = NewUseCaching;
+        if (!UseCaching)
+          {
+            ForgetViewCache();
+          } /*if*/
+      } /*SetUseCaching*/
+
     public void ZoomBy
       (
         float Factor
@@ -899,7 +928,7 @@ public class DrawView extends android.view.View
         if (NewZoomFactor != ZoomFactor)
           {
             DisposeViewCache();
-          /* try to adjust scroll offset so point in map at centre of view stays in centre */
+          /* try to adjust scroll offset so point in image at centre of view stays in centre */
             final ViewParms v1 = new ViewParms();
             final ViewParms v2 = new ViewParms(NewZoomFactor);
             if (v1.ScaledViewWidth > v1.ViewWidth && v2.ScaledViewWidth > v2.ViewWidth)
@@ -950,7 +979,8 @@ public class DrawView extends android.view.View
         float X,
         float Y
       )
-      /* tries to ensure the specified position is at the centre of the view. */
+      /* tries to ensure the specified position (in image coordinates)
+        is at the centre of the view. */
       {
         if (DrawWhat != null)
           {
@@ -988,15 +1018,10 @@ public class DrawView extends android.view.View
           } /*if*/
       } /*ScrollTo*/
 
-    @Override
-    public void invalidate()
-      {
-        RecenterViewCache();
-        super.invalidate();
-      } /*invalidate*/
-
-  /* implementing the following (and calling setxxxFadingEdgeEnabled(true)
-    in the constructors, above) will cause fading edges to appear */
+/*
+    Implementing the following (and calling setxxxFadingEdgeEnabled(true)
+    in the constructors, above) will cause fading edges to appear.
+*/
 
     protected static final int ScrollScale = 1000;
 
