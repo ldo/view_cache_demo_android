@@ -90,7 +90,7 @@ public class DrawView extends android.view.View
       {
         public final float DrawWidth, DrawHeight;
         public final float ViewWidth, ViewHeight;
-        public float ScaledViewWidth, ScaledViewHeight;
+        public final float ScaledViewWidth, ScaledViewHeight;
         public final boolean CanScrollHoriz, CanScrollVert;
 
         public ViewParms
@@ -102,15 +102,22 @@ public class DrawView extends android.view.View
             DrawHeight = DrawWhat.Bounds.bottom - DrawWhat.Bounds.top;
             ViewWidth = getWidth();
             ViewHeight = getHeight();
-            ScaledViewWidth = ViewWidth * ZoomFactor;
-            ScaledViewHeight = ViewHeight * ZoomFactor;
+            final float ScaledViewWidth = ViewWidth * ZoomFactor;
+            final float ScaledViewHeight = ViewHeight * ZoomFactor;
             if (ScaledViewWidth > ScaledViewHeight * DrawWidth / DrawHeight)
               {
-                ScaledViewWidth = ScaledViewHeight * DrawWidth / DrawHeight;
+                this.ScaledViewWidth = ScaledViewHeight * DrawWidth / DrawHeight;
+                this.ScaledViewHeight = ScaledViewHeight;
               }
             else if (ScaledViewHeight > ScaledViewWidth * DrawHeight / DrawWidth)
               {
-                ScaledViewHeight = ScaledViewWidth * DrawHeight / DrawWidth;
+                this.ScaledViewWidth = ScaledViewWidth;
+                this.ScaledViewHeight = ScaledViewWidth * DrawHeight / DrawWidth;
+              }
+            else
+              {
+                this.ScaledViewWidth = ScaledViewWidth;
+                this.ScaledViewHeight = ScaledViewHeight;
               } /*if*/
             CanScrollHoriz = ScaledViewWidth > ViewWidth;
             CanScrollVert = ScaledViewHeight > ViewHeight;
