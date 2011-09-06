@@ -91,6 +91,7 @@ public class DrawView extends android.view.View
         public final float DrawWidth, DrawHeight;
         public final float ViewWidth, ViewHeight;
         public float ScaledViewWidth, ScaledViewHeight;
+        public final boolean CanScrollHoriz, CanScrollVert;
 
         public ViewParms
           (
@@ -111,6 +112,8 @@ public class DrawView extends android.view.View
               {
                 ScaledViewHeight = ScaledViewWidth * DrawHeight / DrawWidth;
               } /*if*/
+            CanScrollHoriz = ScaledViewWidth > ViewWidth;
+            CanScrollVert = ScaledViewHeight > ViewHeight;
           } /*ViewParms*/
 
         public ViewParms()
@@ -134,11 +137,11 @@ public class DrawView extends android.view.View
                 /*x =*/
                         (v.ViewWidth - v.ScaledViewWidth)
                     *
-                        (v.ScaledViewWidth >= v.ViewWidth ? ScrollX : 0.5f),
+                        (v.CanScrollHoriz ? ScrollX : 0.5f),
                 /*y =*/
                         (v.ViewHeight - v.ScaledViewHeight)
                     *
-                        (v.ScaledViewHeight >= v.ViewHeight ? ScrollY : 0.5f)
+                        (v.CanScrollVert ? ScrollY : 0.5f)
               );
       } /*ScrollOffset*/
 
@@ -461,9 +464,9 @@ public class DrawView extends android.view.View
                     final ViewParms v = new ViewParms();
                     final PointF ViewOffset = ScrollOffset(v);
                     final boolean DoFling =
-                            v.ScaledViewWidth > v.ViewWidth && XVelocity != 0
+                            v.CanScrollHoriz && XVelocity != 0
                         ||
-                            v.ScaledViewHeight > v.ViewHeight && YVelocity != 0;
+                            v.CanScrollVert && YVelocity != 0;
                     if (DoFling)
                       {
                         final double CurrentTime = System.currentTimeMillis() / 1000.0;
@@ -634,14 +637,14 @@ public class DrawView extends android.view.View
                                 :
                                     LastMouse2;
                             final ViewParms v = new ViewParms();
-                            if (v.ScaledViewWidth > v.ViewWidth && ThisMouse.x != LastMouse.x)
+                            if (v.CanScrollHoriz && ThisMouse.x != LastMouse.x)
                               {
                                 final float ScrollDelta =
                                     (ThisMouse.x - LastMouse.x) / (v.ViewWidth - v.ScaledViewWidth);
                                 ScrollX = Math.max(0.0f, Math.min(1.0f, ScrollX + ScrollDelta));
                                 super.invalidate();
                               } /*if*/
-                            if (v.ScaledViewHeight > v.ViewHeight && ThisMouse.y != LastMouse.y)
+                            if (v.CanScrollVert && ThisMouse.y != LastMouse.y)
                               {
                                 final float ScrollDelta =
                                     (ThisMouse.y - LastMouse.y) / (v.ViewHeight - v.ScaledViewHeight);
@@ -728,7 +731,7 @@ public class DrawView extends android.view.View
                               )
                         :
                             LastMouse1;
-                    if (v.ScaledViewWidth > v.ViewWidth)
+                    if (v.CanScrollHoriz)
                       {
                         NewCenter.x =
                                     (LastMouse.x - ViewOffset.x)
@@ -739,7 +742,7 @@ public class DrawView extends android.view.View
                             +
                                 DrawWhat.Bounds.left;
                       } /*if*/
-                    if (v.ScaledViewHeight > v.ViewHeight)
+                    if (v.CanScrollVert)
                       {
                         NewCenter.y =
                                     (LastMouse.y - ViewOffset.y)
@@ -938,7 +941,7 @@ public class DrawView extends android.view.View
           /* try to adjust scroll offset so point in image at centre of view stays in centre */
             final ViewParms v1 = new ViewParms();
             final ViewParms v2 = new ViewParms(NewZoomFactor);
-            if (v1.ScaledViewWidth > v1.ViewWidth && v2.ScaledViewWidth > v2.ViewWidth)
+            if (v1.CanScrollHoriz && v2.CanScrollHoriz)
               {
                 ScrollX =
                         (
@@ -957,7 +960,7 @@ public class DrawView extends android.view.View
                     /
                         (v2.ScaledViewWidth - v2.ViewWidth);
               } /*if*/
-            if (v1.ScaledViewHeight > v1.ViewHeight && v2.ScaledViewHeight > v2.ViewHeight)
+            if (v1.CanScrollVert && v2.CanScrollVert)
               {
                 ScrollY =
                         (
@@ -994,7 +997,7 @@ public class DrawView extends android.view.View
             final ViewParms v = new ViewParms();
             final float OldScrollX = ScrollX;
             final float OldScrollY = ScrollY;
-            if (v.ScaledViewWidth > v.ViewWidth)
+            if (v.CanScrollHoriz)
               {
                 ScrollX =
                         (
@@ -1006,7 +1009,7 @@ public class DrawView extends android.view.View
                         (v.ScaledViewWidth - v.ViewWidth);
                 ScrollX = Math.max(0.0f, Math.min(1.0f, ScrollX));
               } /*if*/
-            if (v.ScaledViewHeight > v.ViewHeight)
+            if (v.CanScrollVert)
               {
                 ScrollY =
                         (
@@ -1045,7 +1048,7 @@ public class DrawView extends android.view.View
       {
         final ViewParms v = new ViewParms();
         return
-            v.ScaledViewWidth > v.ViewWidth ?
+            v.CanScrollHoriz ?
                 (int)Math.round
                   (
                     ScrollX * ScrollScale * (v.ScaledViewWidth - v.ViewWidth) /  v.ScaledViewWidth
@@ -1074,7 +1077,7 @@ public class DrawView extends android.view.View
       {
         final ViewParms v = new ViewParms();
         return
-            v.ScaledViewHeight > v.ViewHeight ?
+            v.CanScrollVert ?
                 (int)Math.round
                   (
                     ScrollY * ScrollScale * (v.ScaledViewHeight - v.ViewHeight) / v.ScaledViewHeight
