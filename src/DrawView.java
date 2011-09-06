@@ -459,7 +459,7 @@ public class DrawView extends android.view.View
 
     private ScrollAnimator CurrentAnim = null;
 
-    protected android.view.GestureDetector FlingDetector =
+    protected final android.view.GestureDetector FlingDetector =
         new android.view.GestureDetector
           (
             Context,
