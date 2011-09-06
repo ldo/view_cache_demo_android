@@ -487,7 +487,7 @@ public class DrawView extends android.view.View
                                 (float)Math.hypot(XVelocity, YVelocity)
                             /
                                 (float)Math.hypot(v.ViewWidth, v.ViewHeight);
-                        final float Attenuate = 2.0f;
+                        final float Attenuate = 4.0f;
                         final PointF StartScroll = /* current centre point in image */
                             new PointF
                               (
