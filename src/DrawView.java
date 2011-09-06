@@ -431,7 +431,7 @@ public class DrawView extends android.view.View
 
         public void run()
           {
-            if (CurrentAnim != null)
+            if (CurrentAnim == this)
               {
                 final double CurrentTime = System.currentTimeMillis() / 1000.0;
                 final float AnimAmt =
