@@ -124,7 +124,7 @@ public class Main extends android.app.Activity
           }
         super.onCreate(SavedInstanceState);
         setContentView(R.layout.main);
-        DrawWhat = new Drawer();
+        DrawWhat = new SampleDrawer();
         Zoomer = (android.widget.ZoomControls)findViewById(R.id.viewzoomer);
         TheDrawView = (DrawView)findViewById(R.id.drawview);
         TheDrawView.SetDrawer(DrawWhat);

@@ -99,8 +99,9 @@ public class DrawView extends android.view.View
             float ZoomFactor
           )
           {
-            DrawWidth = DrawWhat.Bounds.right - DrawWhat.Bounds.left;
-            DrawHeight = DrawWhat.Bounds.bottom - DrawWhat.Bounds.top;
+            final RectF DrawBounds = DrawWhat.GetBounds();
+            DrawWidth = DrawBounds.right - DrawBounds.left;
+            DrawHeight = DrawBounds.bottom - DrawBounds.top;
             ViewWidth = getWidth();
             ViewHeight = getHeight();
             final float ScaledViewWidth = ViewWidth * ZoomFactor;
@@ -164,7 +165,7 @@ public class DrawView extends android.view.View
       {
         public final Bitmap Bits; /* cached part of image */
         public final RectF Bounds;
-          /* such that (0, 0) maps to (DrawWhat.Bounds.left, DrawWhat.Bounds.top)
+          /* such that (0, 0) maps to (DrawWhat.GetBounds().left, DrawWhat.GetBounds().top)
             but scaled to view bounds at current zoom */
 
         public ViewCacheBits
@@ -488,17 +489,18 @@ public class DrawView extends android.view.View
                             /
                                 (float)Math.hypot(v.ViewWidth, v.ViewHeight);
                         final float Attenuate = 4.0f;
+                        final RectF DrawBounds = DrawWhat.GetBounds();
                         final PointF StartScroll = /* current centre point in image */
                             new PointF
                               (
-                                    DrawWhat.Bounds.left
+                                    DrawBounds.left
                                 +
                                         (v.ViewWidth / 2.0f - ViewOffset.x)
                                     /
                                         v.ScaledViewWidth
                                     *
                                         v.DrawWidth,
-                                    DrawWhat.Bounds.top
+                                    DrawBounds.top
                                 +
                                         (v.ViewHeight / 2.0f - ViewOffset.y)
                                     /
@@ -535,14 +537,14 @@ public class DrawView extends android.view.View
                         EndScroll.x =
                             Math.max
                               (
-                                DrawWhat.Bounds.left,
-                                Math.min(EndScroll.x, DrawWhat.Bounds.right)
+                                DrawBounds.left,
+                                Math.min(EndScroll.x, DrawBounds.right)
                               );
                         EndScroll.y =
                             Math.max
                               (
-                                DrawWhat.Bounds.top,
-                                Math.min(EndScroll.y, DrawWhat.Bounds.bottom)
+                                DrawBounds.top,
+                                Math.min(EndScroll.y, DrawBounds.bottom)
                               );
                         new ScrollAnimator
                           (
@@ -745,10 +747,11 @@ public class DrawView extends android.view.View
                   /* move point that user tapped to centre of view if possible */
                     final ViewParms v = new ViewParms();
                     final PointF ViewOffset = ScrollOffset(v);
+                    final RectF DrawBounds = DrawWhat.GetBounds();
                     final PointF NewCenter = new PointF
                       (
-                        (DrawWhat.Bounds.right + DrawWhat.Bounds.left) / 2.0f,
-                        (DrawWhat.Bounds.bottom + DrawWhat.Bounds.top) / 2.0f
+                        (DrawBounds.right + DrawBounds.left) / 2.0f,
+                        (DrawBounds.bottom + DrawBounds.top) / 2.0f
                       );
                     final PointF LastMouse =
                         LastMouse2 != null ?
@@ -768,7 +771,7 @@ public class DrawView extends android.view.View
                                *
                                     v.DrawWidth
                             +
-                                DrawWhat.Bounds.left;
+                                DrawBounds.left;
                       } /*if*/
                     if (v.CanScrollVert)
                       {
@@ -779,7 +782,7 @@ public class DrawView extends android.view.View
                                *
                                     v.DrawHeight
                             +
-                                DrawWhat.Bounds.top;
+                                DrawBounds.top;
                       } /*if*/
                     ScrollTo(NewCenter.x, NewCenter.y);
                   } /*if*/
@@ -1025,11 +1028,12 @@ public class DrawView extends android.view.View
             final ViewParms v = new ViewParms();
             final float OldScrollX = ScrollX;
             final float OldScrollY = ScrollY;
+            final RectF DrawBounds = DrawWhat.GetBounds();
             if (v.CanScrollHoriz)
               {
                 ScrollX =
                         (
-                            (X - DrawWhat.Bounds.left) / v.DrawWidth * v.ScaledViewWidth
+                            (X - DrawBounds.left) / v.DrawWidth * v.ScaledViewWidth
                         -
                             v.ViewWidth / 2.0f
                         )
@@ -1041,7 +1045,7 @@ public class DrawView extends android.view.View
               {
                 ScrollY =
                         (
-                            (Y - DrawWhat.Bounds.top) / v.DrawHeight * v.ScaledViewHeight
+                            (Y - DrawBounds.top) / v.DrawHeight * v.ScaledViewHeight
                         -
                             v.ViewHeight / 2.0f
                         )
