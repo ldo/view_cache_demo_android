@@ -445,9 +445,10 @@ public class DrawView extends android.view.View
                     StartScroll.x + (EndScroll.x - StartScroll.x) * AnimAmt,
                     StartScroll.y + (EndScroll.y - StartScroll.y) * AnimAmt
                   );
-                if (CurrentTime < EndTime)
+                final android.os.Handler MyHandler = getHandler();
+                if (MyHandler != null && CurrentTime < EndTime)
                   {
-                    getHandler().post(this);
+                    MyHandler.post(this);
                   }
                 else
                   {
