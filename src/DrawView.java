@@ -384,14 +384,6 @@ public class DrawView extends android.view.View
                         ViewBounds.bottom - ViewBounds.top
                       )
               );
-            System.err.printf
-              (
-                "Build cache centre (%.2f, %.2f) <= (%.2f, %.2f) bounds (%.2f, %.2f, %.2f, %.2f) <= (%.2f, %.2f, %.2f, %.2f)\n",
-                ViewCenter.x, ViewCenter.y,
-                ScrollOffset.x, ScrollOffset.y,
-                CacheBounds.left, CacheBounds.top, CacheBounds.right, CacheBounds.bottom,
-                ViewBounds.left, ViewBounds.top, ViewBounds.right, ViewBounds.bottom
-              ); /* debug */
             if (CacheBounds.isEmpty())
               {
               /* can seem to happen, e.g. on orientation change */
@@ -505,14 +497,6 @@ public class DrawView extends android.view.View
               )
               {
               /* cache doesn't completely cover visible part of image */
-                System.err.printf
-                  (
-                    "Cache bounds (%.2f, %.2f, %.2f, %.2f) => (%.2f, %.2f, %.2f, %.2f) don't completely cover view (0, 0, %d, %d) => (%.2f, %.2f, %.2f, %.2f)\n",
-                    ViewCache.Bounds.left, ViewCache.Bounds.top, ViewCache.Bounds.right, ViewCache.Bounds.bottom,
-                    DestRect.left, DestRect.top, DestRect.right, DestRect.bottom,
-                    getWidth(), getHeight(),
-                    ViewBounds.left, ViewBounds.top, ViewBounds.right, ViewBounds.bottom
-                  ); /* debug */
                 RebuildViewCache();
               } /*if*/
           } /*if*/
@@ -531,19 +515,7 @@ public class DrawView extends android.view.View
               {
               /* cache available, use it */
                 final RectF DestRect = new RectF(ViewCache.Bounds);
-                System.err.printf
-                  (
-                    "onDraw cached Scroll = (%.2f, %.2f), ViewBounds = (%.2f, %.2f, %.2f, %.2f), cache bounds = (%.2f, %.2f, %.2f, %.2f)",
-                    ScrollOffset.x, ScrollOffset.y,
-                    ViewBounds.left, ViewBounds.top, ViewBounds.right, ViewBounds.bottom,
-                    DestRect.left, DestRect.top, DestRect.right, DestRect.bottom
-                  ); /* debug */
                 DestRect.offset(ViewBounds.left, ViewBounds.top);
-                System.err.printf
-                  (
-                    " => (%.2f, %.2f, %.2f, %.2f)\n",
-                    DestRect.left, DestRect.top, DestRect.right, DestRect.bottom
-                  ); /* debug */
               /* Unfortunately, the sample image doesn't look exactly the same
                 when drawn offscreen and then copied on-screen, versus being
                 drawn directly on-screen: path strokes are slightly thicker
@@ -559,12 +531,6 @@ public class DrawView extends android.view.View
             else
               {
               /* do it the slow way */
-                System.err.printf
-                  (
-                    "onDraw uncached Scroll = (%.2f, %.2f), ViewBounds = (%.2f, %.2f, %.2f, %.2f)\n",
-                    ScrollOffset.x, ScrollOffset.y,
-                    ViewBounds.left, ViewBounds.top, ViewBounds.right, ViewBounds.bottom
-                  ); /* debug */
                 DrawWhat.Draw(g, ViewBounds);
                 if (UseCaching && BuildViewCache == null)
                   {
@@ -751,7 +717,6 @@ public class DrawView extends android.view.View
                         >>
                             MotionEvent.ACTION_POINTER_ID_SHIFT;
                     final int MouseID = TheEvent.getPointerId(PointerIndex);
-                    System.err.println("PuzzleView: semi-down pointer ID " + MouseID); /* debug */
                     final PointF MousePos = new PointF
                       (
                         TheEvent.getX(PointerIndex),
@@ -883,7 +848,6 @@ public class DrawView extends android.view.View
                         >>
                             MotionEvent.ACTION_POINTER_ID_SHIFT;
                     final int PointerID = TheEvent.getPointerId(PointerIndex);
-                    System.err.println("PuzzleView: semi-up pointer ID " + PointerID); /* debug */
                     if (PointerID == Mouse1ID)
                       {
                         Mouse1ID = Mouse2ID;
@@ -967,7 +931,6 @@ public class DrawView extends android.view.View
                     android.os.Parcel SavedState
                   )
                   {
-                    System.err.println("DrawView.SavedDrawViewState.createFromParcel"); /* debug */
                     final android.view.AbsSavedState SuperState =
                         android.view.AbsSavedState.CREATOR.createFromParcel(SavedState);
                     final android.os.Bundle MyState = SavedState.readBundle();
@@ -1016,7 +979,6 @@ public class DrawView extends android.view.View
             int Flags
           )
           {
-            System.err.println("DrawView.SavedDrawViewState.writeToParcel"); /* debug */
             super.writeToParcel(SavedState, Flags);
           /* put my state in a Bundle, where each item is associated with a
             keyword name (unlike the Parcel itself, where items are identified
@@ -1033,7 +995,6 @@ public class DrawView extends android.view.View
     @Override
     public android.os.Parcelable onSaveInstanceState()
       {
-        System.err.println("DrawView called to save instance state"); /* debug */
         return
             new SavedDrawViewState
               (
@@ -1050,7 +1011,6 @@ public class DrawView extends android.view.View
         android.os.Parcelable SavedState
       )
       {
-        System.err.println("DrawView called to restore instance state " + (SavedState != null ? "non-null" : "null")); /* debug */
         final SavedDrawViewState MyState = (SavedDrawViewState)SavedState;
         super.onRestoreInstanceState(MyState.SuperState);
         ScrollOffset.x = MyState.ScrollX;
