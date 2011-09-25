@@ -27,11 +27,12 @@ public class DrawView extends android.view.View
   {
     protected android.content.Context Context;
     protected float ZoomFactor;
-    protected float ScrollX, ScrollY;
-      /* range is [0.0 .. 1.0], such that 0 corresponds to left/top edge
-        of image being at left/top edge of view, 0.5 corresponds to middle
-        of image being in middle of view, and 1 corresponds to right/bottom
-        edge of image being at right/bottom edge of view */
+    protected PointF ScrollOffset;
+      /* range along each axis is [0.0 .. 1.0], such that 0
+        corresponds to left/top edge of image being at left/top edge
+        of view, 0.5 corresponds to middle of image being in middle of
+        view, and 1 corresponds to right/bottom edge of image being at
+        right/bottom edge of view */
     protected final float MaxZoomFactor = 32.0f;
     protected final float MinZoomFactor = 1.0f;
 
@@ -45,9 +46,8 @@ public class DrawView extends android.view.View
       /* common code for all constructors */
       {
         this.Context = Context;
+        ScrollOffset = new PointF(0.5f, 0.5f);
         ZoomFactor = 1.0f;
-        ScrollX = 0.5f;
-        ScrollY = 0.5f;
         setHorizontalFadingEdgeEnabled(true);
         setVerticalFadingEdgeEnabled(true);
       } /*Init*/
@@ -85,76 +85,237 @@ public class DrawView extends android.view.View
     Mapping between image coordinates and view coordinates
 */
 
-    protected class ViewParms
-      /* parameters for scaling and positioning image display */
-      {
-        public final float DrawWidth, DrawHeight;
-        public final float ViewWidth, ViewHeight;
-        public final float ScaledViewWidth, ScaledViewHeight;
-        public final float HorScrollLimit, VertScrollLimit;
-        public final boolean CanScrollHoriz, CanScrollVert;
-
-        public ViewParms
-          (
-            float ZoomFactor
-          )
-          {
-            final RectF DrawBounds = DrawWhat.GetBounds();
-            DrawWidth = DrawBounds.right - DrawBounds.left;
-            DrawHeight = DrawBounds.bottom - DrawBounds.top;
-            ViewWidth = getWidth();
-            ViewHeight = getHeight();
-            final float ScaledViewWidth = ViewWidth * ZoomFactor;
-            final float ScaledViewHeight = ViewHeight * ZoomFactor;
-            if (ScaledViewWidth > ScaledViewHeight * DrawWidth / DrawHeight)
-              {
-                this.ScaledViewWidth = ScaledViewHeight * DrawWidth / DrawHeight;
-                this.ScaledViewHeight = ScaledViewHeight;
-              }
-            else if (ScaledViewHeight > ScaledViewWidth * DrawHeight / DrawWidth)
-              {
-                this.ScaledViewWidth = ScaledViewWidth;
-                this.ScaledViewHeight = ScaledViewWidth * DrawHeight / DrawWidth;
-              }
-            else
-              {
-                this.ScaledViewWidth = ScaledViewWidth;
-                this.ScaledViewHeight = ScaledViewHeight;
-              } /*if*/
-            HorScrollLimit = this.ScaledViewWidth - ViewWidth;
-            VertScrollLimit = this.ScaledViewHeight - ViewHeight;
-            CanScrollHoriz = HorScrollLimit > 0;
-            CanScrollVert = VertScrollLimit > 0;
-          } /*ViewParms*/
-
-        public ViewParms()
-          {
-            this(DrawView.this.ZoomFactor);
-          } /*ViewParms*/
-
-      } /*ViewParms*/
-
-    protected PointF ScrollOffset
+    static PointF MapRect
       (
-        ViewParms v
+        PointF Pt,
+        RectF Src,
+        RectF Dst
       )
-      /* returns the amounts by which to offset the scaled view as
-        computed from the current scroll values. Note both components
-        will be non-positive. */
+      /* maps Pt from Src coordinates to Dst coordinates. */
       {
         return
             new PointF
               (
-                /*x =*/
-                        - v.HorScrollLimit
+                        (Pt.x - Src.left)
+                    /
+                        (Src.right - Src.left)
                     *
-                        (v.CanScrollHoriz ? ScrollX : 0.5f),
-                /*y =*/
-                        - v.VertScrollLimit
+                        (Dst.right - Dst.left)
+                +
+                    Dst.left,
+                        (Pt.y - Src.top)
+                    /
+                        (Src.bottom - Src.top)
                     *
-                        (v.CanScrollVert ? ScrollY : 0.5f)
+                        (Dst.bottom - Dst.top)
+                +
+                    Dst.top
               );
-      } /*ScrollOffset*/
+      } /*MapRect*/
+
+    protected PointF GetViewSize
+      (
+        float ZoomFactor
+      )
+      /* gets the image bounds in view coordinates, adjusted for the specified
+        zoom setting. */
+      {
+        final RectF DrawBounds = DrawWhat.GetBounds();
+        final PointF ViewSize = new PointF(getWidth() * ZoomFactor, getHeight() * ZoomFactor);
+        if
+          (
+                ViewSize.x / ViewSize.y
+            >
+                (DrawBounds.right - DrawBounds.left) / (DrawBounds.bottom - DrawBounds.top)
+          )
+          {
+          /* leave unused margin at right of too-wide view */
+            ViewSize.x =
+                    ViewSize.y
+                *
+                    (DrawBounds.right - DrawBounds.left)
+                /
+                    (DrawBounds.bottom - DrawBounds.top);
+          }
+        else
+          {
+          /* leave unused margin at bottom of too-tall view, if any */
+            ViewSize.y =
+                    ViewSize.x
+                *
+                    (DrawBounds.bottom - DrawBounds.top)
+                /
+                    (DrawBounds.right - DrawBounds.left);
+          } /*if*/
+        return
+            ViewSize;
+      } /*GetViewSize*/
+
+    protected PointF GetViewSize()
+      /* gets the image bounds in view coordinates, adjusted for the current
+        zoom setting. */
+      {
+        return
+            GetViewSize(ZoomFactor);
+      } /*GetViewSize*/
+
+    protected RectF GetViewBounds
+      (
+        float ZoomFactor
+      )
+      {
+        final PointF ViewSize = GetViewSize(ZoomFactor);
+        return
+            new RectF(0.0f, 0.0f, ViewSize.x, ViewSize.y);
+      } /*GetViewBounds*/
+
+    protected RectF GetScrolledViewBounds
+      (
+        PointF ScrollOffset,
+        float ZoomFactor
+      )
+      /* gets the image bounds in view coordinates, adjusted for the specified
+        scroll offset and zoom setting. */
+      {
+        final PointF ViewSize = GetViewSize(ZoomFactor);
+        final RectF ViewBounds = GetViewBounds(ZoomFactor);
+        ViewBounds.offset
+          (
+            /*dx =*/ Math.min(ScrollOffset.x * (getWidth() - ViewSize.x), 0.0f),
+            /*dy =*/ Math.min(ScrollOffset.y * (getHeight() - ViewSize.y), 0.0f)
+          );
+        return
+            ViewBounds;
+      } /*GetScrolledViewBounds*/
+
+    protected RectF GetScrolledViewBounds()
+      /* gets the image bounds in view coordinates, adjusted for the current
+        scroll offset and zoom setting. */
+      {
+        return
+            GetScrolledViewBounds(ScrollOffset, ZoomFactor);
+      } /*GetScrolledViewBounds*/
+
+    protected PointF DrawToView
+      (
+        PointF DrawCoords,
+        PointF ScrollOffset,
+        float ZoomFactor
+      )
+      /* maps DrawCoords to view coordinates at the specified scroll offset
+        and zoom setting. */
+      {
+        return
+            MapRect
+              (
+                /*Pt =*/ DrawCoords,
+                /*Src =*/ DrawWhat.GetBounds(),
+                /*Dst =*/ GetScrolledViewBounds(ScrollOffset, ZoomFactor)
+              );
+      } /*DrawToView*/
+
+    protected PointF DrawToView
+      (
+        PointF DrawCoords
+      )
+      /* maps DrawCoords to view coordinates at the current scroll offset
+        and zoom setting. */
+      {
+        return
+            MapRect(DrawCoords, DrawWhat.GetBounds(), GetScrolledViewBounds());
+      } /*DrawToView*/
+
+    protected PointF ViewToDraw
+      (
+        PointF ViewCoords,
+        PointF ScrollOffset,
+        float ZoomFactor
+      )
+      /* maps ViewCoords to draw coordinates at the specified scroll offset
+        and zoom setting. */
+      {
+        return
+            MapRect
+              (
+                /*Pt =*/ ViewCoords,
+                /*Src =*/ GetScrolledViewBounds(ScrollOffset, ZoomFactor),
+                /*Dst =*/ DrawWhat.GetBounds()
+              );
+      } /*ViewToDraw*/
+
+    protected PointF ViewToDraw
+      (
+        PointF ViewCoords
+      )
+      /* maps ViewCoords to draw coordinates at the current scroll offset
+        and zoom setting. */
+      {
+        return
+            ViewToDraw(ViewCoords, ScrollOffset, ZoomFactor);
+      } /*ViewToDraw*/
+
+    protected PointF FindScrollOffset
+      (
+        PointF DrawCoords,
+        PointF ViewCoords,
+        float ZoomFactor
+      )
+      /* computes the necessary scroll offset so DrawCoords maps to ViewCoords
+        at the specified zoom setting. */
+      {
+        final RectF DrawBounds = DrawWhat.GetBounds();
+        final PointF ViewSize = GetViewSize(ZoomFactor);
+        return
+            new PointF
+              (
+                /*x =*/
+                    ViewSize.x != getWidth() ?
+                        Math.max
+                          (
+                            0.0f,
+                            Math.min
+                              (
+                                    (
+                                            (DrawCoords.x - DrawBounds.left)
+                                        /
+                                            (DrawBounds.right - DrawBounds.left)
+                                        *
+                                            ViewSize.x
+                                    -
+                                        ViewCoords.x
+                                    )
+                                /
+                                    (ViewSize.x - getWidth()),
+                                1.0f
+                              )
+                          )
+                    :
+                        0.5f,
+                /*y =*/
+                    ViewSize.y != getHeight() ?
+                        Math.max
+                          (
+                            0.0f,
+                            Math.min
+                              (
+                                    (
+                                            (DrawCoords.y - DrawBounds.top)
+                                        /
+                                            (DrawBounds.bottom - DrawBounds.top)
+                                        *
+                                            ViewSize.y
+                                    -
+                                        ViewCoords.y
+                                    )
+                                /
+                                    (ViewSize.y - getHeight()),
+                                1.0f
+                              )
+                          )
+                    :
+                        0.5f
+              );
+      } /*FindScrollOffset*/
 
 /*
     View cache management & drawing
@@ -188,48 +349,53 @@ public class DrawView extends android.view.View
     protected class ViewCacheBuilder extends android.os.AsyncTask<Void, Integer, ViewCacheBits>
       /* background rebuilding of the view cache */
       {
-        protected RectF ScaledViewBounds, CacheBounds;
+        protected PointF ViewSize;
+        protected RectF CacheBounds;
 
         protected void onPreExecute()
           {
-            final ViewParms v = new ViewParms();
-            ScaledViewBounds = new RectF(0, 0, v.ScaledViewWidth, v.ScaledViewHeight);
-            final PointF ViewOffset = ScrollOffset(v);
-            final PointF ViewCenter = new PointF
-              (
-                /*x =*/ v.ViewWidth / 2.0f - ViewOffset.x,
-                /*y =*/ v.ViewHeight / 2.0f - ViewOffset.y
-              );
+            ViewSize = GetViewSize();
+            final RectF ViewBounds = GetScrolledViewBounds();
+            final PointF ViewCenter = new PointF(getWidth() / 2.0f, getHeight() / 2.0f);
             CacheBounds = new RectF
               (
                 /*left =*/
                     Math.max
                       (
-                        ViewCenter.x - v.ViewWidth * MaxCacheFactor / 2.0f,
-                        ScaledViewBounds.left
+                        ViewCenter.x - getWidth() * MaxCacheFactor / 2.0f - ViewBounds.left,
+                        0.0f
                       ),
                 /*top =*/
                     Math.max
                       (
-                        ViewCenter.y - v.ViewHeight * MaxCacheFactor / 2.0f,
-                        ScaledViewBounds.top
+                        ViewCenter.y - getHeight() * MaxCacheFactor / 2.0f - ViewBounds.top,
+                        0.0f
                       ),
                 /*right =*/
                     Math.min
                       (
-                        ViewCenter.x + v.ViewWidth * MaxCacheFactor / 2.0f,
-                        ScaledViewBounds.right
+                        ViewCenter.x + getWidth() * MaxCacheFactor / 2.0f - ViewBounds.left,
+                        ViewBounds.right - ViewBounds.left
                       ),
                 /*bottom =*/
                     Math.min
                       (
-                        ViewCenter.y + v.ViewHeight * MaxCacheFactor / 2.0f,
-                        ScaledViewBounds.bottom
+                        ViewCenter.y + getHeight() * MaxCacheFactor / 2.0f - ViewBounds.top,
+                        ViewBounds.bottom - ViewBounds.top
                       )
               );
+            System.err.printf
+              (
+                "Build cache centre (%.2f, %.2f) <= (%.2f, %.2f) bounds (%.2f, %.2f, %.2f, %.2f) <= (%.2f, %.2f, %.2f, %.2f)\n",
+                ViewCenter.x, ViewCenter.y,
+                ScrollOffset.x, ScrollOffset.y,
+                CacheBounds.left, CacheBounds.top, CacheBounds.right, CacheBounds.bottom,
+                ViewBounds.left, ViewBounds.top, ViewBounds.right, ViewBounds.bottom
+              ); /* debug */
             if (CacheBounds.isEmpty())
               {
               /* can seem to happen, e.g. on orientation change */
+                BuildViewCache = null;
                 cancel(true);
               } /*if*/
           } /*onPreExecute*/
@@ -247,7 +413,7 @@ public class DrawView extends android.view.View
                     /*config =*/ Bitmap.Config.ARGB_8888
                   );
             final android.graphics.Canvas CacheDraw = new android.graphics.Canvas(CacheBits);
-            final RectF DestRect = new RectF(ScaledViewBounds);
+            final RectF DestRect = new RectF(0.0f, 0.0f, ViewSize.x, ViewSize.y);
             DestRect.offset(- CacheBounds.left, - CacheBounds.top);
             DrawWhat.Draw(CacheDraw, DestRect); /* this is the time-consuming part */
             CacheBits.prepareToDraw();
@@ -324,22 +490,29 @@ public class DrawView extends android.view.View
                 ViewCache != null
           )
           {
-            final ViewParms v = new ViewParms();
-            final PointF ViewOffset = ScrollOffset(v);
+            final RectF ViewBounds = GetScrolledViewBounds();
             final RectF DestRect = new RectF(ViewCache.Bounds);
-            DestRect.offset(ViewOffset.x, ViewOffset.y);
+            DestRect.offset(ViewBounds.left, ViewBounds.top);
             if
-                (
-                    DestRect.left > 0
+              (
+                    DestRect.left > Math.max(0, ViewBounds.left)
                 ||
-                    DestRect.top > 0
+                    DestRect.top > Math.max(0, ViewBounds.top)
                 ||
-                    DestRect.right <= v.ViewWidth
+                    DestRect.right < Math.min(getWidth(), ViewBounds.right)
                 ||
-                    DestRect.bottom <= v.ViewHeight
-                )
+                    DestRect.bottom < Math.min(getHeight(), ViewBounds.bottom)
+              )
               {
-              /* cache doesn't completely cover view */
+              /* cache doesn't completely cover visible part of image */
+                System.err.printf
+                  (
+                    "Cache bounds (%.2f, %.2f, %.2f, %.2f) => (%.2f, %.2f, %.2f, %.2f) don't completely cover view (0, 0, %d, %d) => (%.2f, %.2f, %.2f, %.2f)\n",
+                    ViewCache.Bounds.left, ViewCache.Bounds.top, ViewCache.Bounds.right, ViewCache.Bounds.bottom,
+                    DestRect.left, DestRect.top, DestRect.right, DestRect.bottom,
+                    getWidth(), getHeight(),
+                    ViewBounds.left, ViewBounds.top, ViewBounds.right, ViewBounds.bottom
+                  ); /* debug */
                 RebuildViewCache();
               } /*if*/
           } /*if*/
@@ -353,13 +526,24 @@ public class DrawView extends android.view.View
       {
         if (DrawWhat != null)
           {
-            final ViewParms v = new ViewParms();
-            final PointF ViewOffset = ScrollOffset(v);
+            final RectF ViewBounds = GetScrolledViewBounds();
             if (ViewCache != null)
               {
               /* cache available, use it */
                 final RectF DestRect = new RectF(ViewCache.Bounds);
-                DestRect.offset(ViewOffset.x, ViewOffset.y);
+                System.err.printf
+                  (
+                    "onDraw cached Scroll = (%.2f, %.2f), ViewBounds = (%.2f, %.2f, %.2f, %.2f), cache bounds = (%.2f, %.2f, %.2f, %.2f)",
+                    ScrollOffset.x, ScrollOffset.y,
+                    ViewBounds.left, ViewBounds.top, ViewBounds.right, ViewBounds.bottom,
+                    DestRect.left, DestRect.top, DestRect.right, DestRect.bottom
+                  ); /* debug */
+                DestRect.offset(ViewBounds.left, ViewBounds.top);
+                System.err.printf
+                  (
+                    " => (%.2f, %.2f, %.2f, %.2f)\n",
+                    DestRect.left, DestRect.top, DestRect.right, DestRect.bottom
+                  ); /* debug */
               /* Unfortunately, the sample image doesn't look exactly the same
                 when drawn offscreen and then copied on-screen, versus being
                 drawn directly on-screen: path strokes are slightly thicker
@@ -375,9 +559,13 @@ public class DrawView extends android.view.View
             else
               {
               /* do it the slow way */
-                final RectF DestRect = new RectF(0, 0, v.ScaledViewWidth, v.ScaledViewHeight);
-                DestRect.offset(ViewOffset.x, ViewOffset.y);
-                DrawWhat.Draw(g, DestRect);
+                System.err.printf
+                  (
+                    "onDraw uncached Scroll = (%.2f, %.2f), ViewBounds = (%.2f, %.2f, %.2f, %.2f)\n",
+                    ScrollOffset.x, ScrollOffset.y,
+                    ViewBounds.left, ViewBounds.top, ViewBounds.right, ViewBounds.bottom
+                  ); /* debug */
+                DrawWhat.Draw(g, ViewBounds);
                 if (UseCaching && BuildViewCache == null)
                   {
                   /* first call, nobody has called RebuildViewCache yet, do it */
@@ -442,8 +630,11 @@ public class DrawView extends android.view.View
                       );
                 ScrollTo
                   (
-                    StartScroll.x + (EndScroll.x - StartScroll.x) * AnimAmt,
-                    StartScroll.y + (EndScroll.y - StartScroll.y) * AnimAmt
+                    new PointF
+                      (
+                        StartScroll.x + (EndScroll.x - StartScroll.x) * AnimAmt,
+                        StartScroll.y + (EndScroll.y - StartScroll.y) * AnimAmt
+                      )
                   );
                 final android.os.Handler MyHandler = getHandler();
                 if (MyHandler != null && CurrentTime < EndTime)
@@ -476,83 +667,54 @@ public class DrawView extends android.view.View
                     float YVelocity
                   )
                   {
-                    final ViewParms v = new ViewParms();
-                    final PointF ViewOffset = ScrollOffset(v);
+                    final RectF ViewBounds = GetScrolledViewBounds();
                     final boolean DoFling =
-                            v.CanScrollHoriz && XVelocity != 0
+                            ViewBounds.left < 0 && XVelocity > 0
                         ||
-                            v.CanScrollVert && YVelocity != 0;
+                            ViewBounds.right > getWidth() && XVelocity < 0
+                        ||
+                            ViewBounds.top < 0 && YVelocity > 0
+                        ||
+                            ViewBounds.bottom > getHeight() && YVelocity < 0;
                     if (DoFling)
                       {
                         final double CurrentTime = System.currentTimeMillis() / 1000.0;
                         final float ScrollDuration =
                                 (float)Math.hypot(XVelocity, YVelocity)
                             /
-                                (float)Math.hypot(v.ViewWidth, v.ViewHeight);
+                                (float)Math.hypot(getWidth(), getHeight());
                         final float Attenuate = 4.0f;
-                        final RectF DrawBounds = DrawWhat.GetBounds();
-                        final PointF StartScroll = /* current centre point in image */
-                            new PointF
-                              (
-                                    DrawBounds.left
-                                +
-                                        (v.ViewWidth / 2.0f - ViewOffset.x)
-                                    /
-                                        v.ScaledViewWidth
-                                    *
-                                        v.DrawWidth,
-                                    DrawBounds.top
-                                +
-                                        (v.ViewHeight / 2.0f - ViewOffset.y)
-                                    /
-                                        v.ScaledViewHeight
-                                    *
-                                        v.DrawHeight
-                              );
+                        final PointF MouseUp = new PointF(UpEvent.getX(), UpEvent.getY());
                         final PointF EndScroll =
-                            new PointF
+                            FindScrollOffset
                               (
-                                    StartScroll.x
-                                -
-                                        XVelocity
-                                    /
-                                        v.ScaledViewWidth
-                                    *
-                                        v.DrawWidth
-                                    *
-                                        ScrollDuration
-                                    /
-                                        Attenuate,
-                                    StartScroll.y
-                                -
-                                        YVelocity
-                                    /
-                                        v.ScaledViewHeight
-                                    *
-                                        v.DrawWidth
-                                    *
-                                        ScrollDuration
-                                    /
-                                        Attenuate
-                              );
-                        EndScroll.x =
-                            Math.max
-                              (
-                                DrawBounds.left,
-                                Math.min(EndScroll.x, DrawBounds.right)
-                              );
-                        EndScroll.y =
-                            Math.max
-                              (
-                                DrawBounds.top,
-                                Math.min(EndScroll.y, DrawBounds.bottom)
+                                /*DrawCoords =*/ ViewToDraw(MouseUp),
+                                /*ViewCoords =*/
+                                    new PointF
+                                      (
+                                            MouseUp.x
+                                        +
+                                                XVelocity
+                                            *
+                                                ScrollDuration
+                                            /
+                                                Attenuate,
+                                            MouseUp.y
+                                        +
+                                                YVelocity
+                                            *
+                                                ScrollDuration
+                                            /
+                                                Attenuate
+                                      ),
+                                /*ZoomFactor =*/ ZoomFactor
                               );
                         new ScrollAnimator
                           (
                             /*AnimFunction =*/ new android.view.animation.DecelerateInterpolator(),
                             /*StartTime =*/ CurrentTime,
                             /*EndTime =*/ CurrentTime + ScrollDuration,
-                            /*StartScroll =*/ StartScroll,
+                            /*StartScroll =*/ ScrollOffset,
                             /*EndScroll =*/ EndScroll
                           );
                       } /*if*/
@@ -662,21 +824,15 @@ public class DrawView extends android.view.View
                                         LastMouse1
                                 :
                                     LastMouse2;
-                            final ViewParms v = new ViewParms();
-                            if (v.CanScrollHoriz && ThisMouse.x != LastMouse.x)
-                              {
-                                final float ScrollDelta =
-                                    (ThisMouse.x - LastMouse.x) / - v.HorScrollLimit;
-                                ScrollX = Math.max(0.0f, Math.min(1.0f, ScrollX + ScrollDelta));
-                                super.invalidate();
-                              } /*if*/
-                            if (v.CanScrollVert && ThisMouse.y != LastMouse.y)
-                              {
-                                final float ScrollDelta =
-                                    (ThisMouse.y - LastMouse.y) / - v.VertScrollLimit;
-                                ScrollY = Math.max(0.0f, Math.min(1.0f, ScrollY + ScrollDelta));
-                                super.invalidate();
-                              } /*if*/
+                            ScrollTo
+                              (
+                                FindScrollOffset
+                                  (
+                                    /*DrawCoords =*/ ViewToDraw(LastMouse),
+                                    /*ViewCoords =*/ ThisMouse,
+                                    /*ZoomFactor =*/ ZoomFactor
+                                  )
+                              );
                             if
                               (
                                     Math.hypot(ThisMouse.x - LastMouse.x, ThisMouse.y - LastMouse.y)
@@ -746,46 +902,26 @@ public class DrawView extends android.view.View
                 if (LastMouse1 != null && !MouseMoved)
                   {
                   /* move point that user tapped to centre of view if possible */
-                    final ViewParms v = new ViewParms();
-                    final PointF ViewOffset = ScrollOffset(v);
-                    final RectF DrawBounds = DrawWhat.GetBounds();
-                    final PointF NewCenter = new PointF
+                    ScrollTo
                       (
-                        (DrawBounds.right + DrawBounds.left) / 2.0f,
-                        (DrawBounds.bottom + DrawBounds.top) / 2.0f
+                        FindScrollOffset
+                          (
+                            /*DrawCoords =*/
+                                ViewToDraw
+                                  (
+                                    LastMouse2 != null ?
+                                        new PointF
+                                          (
+                                            (LastMouse1.x + LastMouse2.x) / 2.0f,
+                                            (LastMouse1.y + LastMouse2.y) / 2.0f
+                                          )
+                                    :
+                                        LastMouse1
+                                  ),
+                            /*ViewCoords =*/ new PointF(getWidth() / 2.0f, getHeight() / 2.0f),
+                            /*ZoomFactor =*/ ZoomFactor
+                          )
                       );
-                    final PointF LastMouse =
-                        LastMouse2 != null ?
-                            new PointF
-                              (
-                                (LastMouse1.x + LastMouse2.x) / 2.0f,
-                                (LastMouse1.y + LastMouse2.y) / 2.0f
-                              )
-                        :
-                            LastMouse1;
-                    if (v.CanScrollHoriz)
-                      {
-                        NewCenter.x =
-                                    (LastMouse.x - ViewOffset.x)
-                               /
-                                    v.ScaledViewWidth
-                               *
-                                    v.DrawWidth
-                            +
-                                DrawBounds.left;
-                      } /*if*/
-                    if (v.CanScrollVert)
-                      {
-                        NewCenter.y =
-                                    (LastMouse.y - ViewOffset.y)
-                               /
-                                    v.ScaledViewHeight
-                               *
-                                    v.DrawHeight
-                            +
-                                DrawBounds.top;
-                      } /*if*/
-                    ScrollTo(NewCenter.x, NewCenter.y);
                   } /*if*/
                 LastMouse1 = null;
                 LastMouse2 = null;
@@ -836,8 +972,8 @@ public class DrawView extends android.view.View
                         new SavedDrawViewState
                           (
                             SuperState,
-                            MyState.getFloat("ScrollX", 0.5f),
-                            MyState.getFloat("ScrollY", 0.5f),
+                            MyState.getFloat("ScrollX", 0.0f),
+                            MyState.getFloat("ScrollY", 0.0f),
                             MyState.getFloat("ZoomFactor", 1.0f)
                           );
                   } /*createFromParcel*/
@@ -899,8 +1035,8 @@ public class DrawView extends android.view.View
             new SavedDrawViewState
               (
                 super.onSaveInstanceState(),
-                ScrollX,
-                ScrollY,
+                ScrollOffset.x,
+                ScrollOffset.y,
                 ZoomFactor
               );
       } /*onSaveInstanceState*/
@@ -914,8 +1050,8 @@ public class DrawView extends android.view.View
         System.err.println("DrawView called to restore instance state " + (SavedState != null ? "non-null" : "null")); /* debug */
         final SavedDrawViewState MyState = (SavedDrawViewState)SavedState;
         super.onRestoreInstanceState(MyState.SuperState);
-        ScrollX = MyState.ScrollX;
-        ScrollY = MyState.ScrollY;
+        ScrollOffset.x = MyState.ScrollX;
+        ScrollOffset.y = MyState.ScrollY;
         ZoomFactor = MyState.ZoomFactor;
         invalidate();
       } /*onRestoreInstanceState*/
@@ -970,92 +1106,36 @@ public class DrawView extends android.view.View
         if (NewZoomFactor != ZoomFactor)
           {
             DisposeViewCache();
-          /* try to adjust scroll offset so point in image at centre of view stays in centre */
-            final ViewParms v1 = new ViewParms();
-            final ViewParms v2 = new ViewParms(NewZoomFactor);
-            if (v1.CanScrollHoriz && v2.CanScrollHoriz)
-              {
-                ScrollX =
-                        (
-                                (
-                                    v1.ViewWidth / 2.0f
-                                +
-                                    ScrollX * v1.HorScrollLimit
-                                )
-                            /
-                                v1.ScaledViewWidth
-                            *
-                                v2.ScaledViewWidth
-                        -
-                            v2.ViewWidth / 2.0f
-                        )
-                    /
-                        v2.HorScrollLimit;
-              } /*if*/
-            if (v1.CanScrollVert && v2.CanScrollVert)
-              {
-                ScrollY =
-                        (
-                                (
-                                    v1.ViewHeight / 2.0f
-                                +
-                                    ScrollY * v1.VertScrollLimit
-                                )
-                            /
-                                v1.ScaledViewHeight
-                            *
-                                v2.ScaledViewHeight
-                        -
-                            v2.ViewHeight / 2.0f
-                        )
-                    /
-                        v2.VertScrollLimit;
-              } /*if*/
+            final PointF ViewCenter = new PointF(getWidth() / 2.0f, getHeight() / 2.0f);
+            final PointF NewScrollOffset = /* so point of image at ViewCenter stays there */
+                FindScrollOffset
+                  (
+                    /*DrawCoords =*/ ViewToDraw(ViewCenter),
+                    /*ViewCoords =*/ ViewCenter,
+                    /*ZoomFactor =*/ NewZoomFactor
+                  );
             ZoomFactor = NewZoomFactor;
+            ScrollTo(NewScrollOffset);
             invalidate();
           } /*if*/
       } /*ZoomBy*/
 
     public void ScrollTo
       (
-        float X,
-        float Y
+        PointF NewScrollOffset
       )
-      /* tries to ensure the specified position (in image coordinates)
-        is at the centre of the view. */
+      /* sets ScrollOffset to the specified value. */
       {
         if (DrawWhat != null)
           {
-            final ViewParms v = new ViewParms();
-            final float OldScrollX = ScrollX;
-            final float OldScrollY = ScrollY;
-            final RectF DrawBounds = DrawWhat.GetBounds();
-            if (v.CanScrollHoriz)
+            NewScrollOffset = new PointF
+              (
+                Math.max(0.0f, Math.min(NewScrollOffset.x, 1.0f)),
+                Math.max(0.0f, Math.min(NewScrollOffset.y, 1.0f))
+              );
+            if (ScrollOffset.x != NewScrollOffset.x || ScrollOffset.y != NewScrollOffset.y)
               {
-                ScrollX =
-                        (
-                            (X - DrawBounds.left) / v.DrawWidth * v.ScaledViewWidth
-                        -
-                            v.ViewWidth / 2.0f
-                        )
-                    /
-                        v.HorScrollLimit;
-                ScrollX = Math.max(0.0f, Math.min(1.0f, ScrollX));
-              } /*if*/
-            if (v.CanScrollVert)
-              {
-                ScrollY =
-                        (
-                            (Y - DrawBounds.top) / v.DrawHeight * v.ScaledViewHeight
-                        -
-                            v.ViewHeight / 2.0f
-                        )
-                    /
-                        v.VertScrollLimit;
-                ScrollY = Math.max(0.0f, Math.min(1.0f, ScrollY));
-              } /*if*/
-            if (OldScrollX != ScrollX || OldScrollY != ScrollY)
-              {
+                ScrollOffset = NewScrollOffset;
                 invalidate();
               } /*if*/
           } /*if*/
@@ -1071,20 +1151,24 @@ public class DrawView extends android.view.View
     @Override
     protected int computeHorizontalScrollExtent()
       {
-        final ViewParms v = new ViewParms();
+        final RectF ViewBounds = GetScrolledViewBounds();
         return
-            (int)Math.round(v.ViewWidth * ScrollScale / v.ScaledViewWidth);
+            (int)Math.round(getWidth() * ScrollScale / (ViewBounds.right - ViewBounds.left));
       } /*computeHorizontalScrollExtent*/
 
     @Override
     protected int computeHorizontalScrollOffset()
       {
-        final ViewParms v = new ViewParms();
+        final RectF ViewBounds = GetScrolledViewBounds();
         return
-            v.CanScrollHoriz ?
+            ViewBounds.right - ViewBounds.left > getWidth() ?
                 (int)Math.round
                   (
-                    ScrollX * ScrollScale * v.HorScrollLimit / v.ScaledViewWidth
+                        (- ViewBounds.left)
+                    *
+                        ScrollScale
+                    /
+                        (ViewBounds.right - ViewBounds.left - getWidth())
                   )
             :
                 0;
@@ -1100,20 +1184,24 @@ public class DrawView extends android.view.View
     @Override
     protected int computeVerticalScrollExtent()
       {
-        final ViewParms v = new ViewParms();
+        final RectF ViewBounds = GetScrolledViewBounds();
         return
-            (int)Math.round(v.ViewHeight * ScrollScale / v.ScaledViewHeight);
+            (int)Math.round(getHeight() * ScrollScale / (ViewBounds.bottom - ViewBounds.top));
       } /*computeVerticalScrollExtent*/
 
     @Override
     protected int computeVerticalScrollOffset()
       {
-        final ViewParms v = new ViewParms();
+        final RectF ViewBounds = GetScrolledViewBounds();
         return
-            v.CanScrollVert ?
+            ViewBounds.bottom - ViewBounds.top > getHeight() ?
                 (int)Math.round
                   (
-                    ScrollY * ScrollScale * v.VertScrollLimit / v.ScaledViewHeight
+                        (- ViewBounds.top)
+                    *
+                        ScrollScale
+                    /
+                        (ViewBounds.bottom - ViewBounds.top - getHeight())
                   )
             :
                 0;
