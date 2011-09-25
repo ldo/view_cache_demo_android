@@ -634,7 +634,8 @@ public class DrawView extends android.view.View
                       (
                         StartScroll.x + (EndScroll.x - StartScroll.x) * AnimAmt,
                         StartScroll.y + (EndScroll.y - StartScroll.y) * AnimAmt
-                      )
+                      ),
+                    false
                   );
                 final android.os.Handler MyHandler = getHandler();
                 if (MyHandler != null && CurrentTime < EndTime)
@@ -831,7 +832,8 @@ public class DrawView extends android.view.View
                                     /*DrawCoords =*/ ViewToDraw(LastMouse),
                                     /*ViewCoords =*/ ThisMouse,
                                     /*ZoomFactor =*/ ZoomFactor
-                                  )
+                                  ),
+                                false
                               );
                             if
                               (
@@ -920,14 +922,15 @@ public class DrawView extends android.view.View
                                   ),
                             /*ViewCoords =*/ new PointF(getWidth() / 2.0f, getHeight() / 2.0f),
                             /*ZoomFactor =*/ ZoomFactor
-                          )
+                          ),
+                        true
                       );
                   } /*if*/
                 LastMouse1 = null;
                 LastMouse2 = null;
                 Mouse1ID = -1;
                 Mouse2ID = -1;
-                DoRebuild = true;
+              /* DoRebuild = true; */ /* not for animated scrolling */
                 Handled = true;
             break;
               } /*switch*/
@@ -1115,14 +1118,15 @@ public class DrawView extends android.view.View
                     /*ZoomFactor =*/ NewZoomFactor
                   );
             ZoomFactor = NewZoomFactor;
-            ScrollTo(NewScrollOffset);
+            ScrollTo(NewScrollOffset, false);
             invalidate();
           } /*if*/
       } /*ZoomBy*/
 
     public void ScrollTo
       (
-        PointF NewScrollOffset
+        PointF NewScrollOffset,
+        boolean Animate
       )
       /* sets ScrollOffset to the specified value. */
       {
@@ -1135,8 +1139,24 @@ public class DrawView extends android.view.View
               );
             if (ScrollOffset.x != NewScrollOffset.x || ScrollOffset.y != NewScrollOffset.y)
               {
-                ScrollOffset = NewScrollOffset;
-                invalidate();
+                if (Animate)
+                  {
+                    final double CurrentTime = System.currentTimeMillis() / 1000.0;
+                    final float ScrollDuration = 1.0f; /* maybe make this depend on scroll amount in future */
+                    new ScrollAnimator
+                      (
+                        /*AnimFunction =*/ new android.view.animation.AccelerateDecelerateInterpolator(),
+                        /*StartTime =*/ CurrentTime,
+                        /*EndTime =*/ CurrentTime + ScrollDuration,
+                        /*StartScroll =*/ ScrollOffset,
+                        /*EndScroll =*/ NewScrollOffset
+                      );
+                  }
+                else
+                  {
+                    ScrollOffset = NewScrollOffset;
+                    invalidate();
+                  } /*if*/
               } /*if*/
           } /*if*/
       } /*ScrollTo*/
