@@ -37,7 +37,9 @@ public class SampleDrawer implements Drawer
 
     public SampleDrawer()
       {
-        Bounds = new RectF(-Radius, -Radius, Radius, Radius);
+        final float Fudge = 1.3f; /* quick-and-dirty adjust for spillover of skewed pattern */
+        final float FRadius = Radius * Fudge;
+        Bounds = new RectF(-FRadius, -FRadius, FRadius, FRadius);
       } /*SampleDrawer*/
 
     protected void DrawSegment
