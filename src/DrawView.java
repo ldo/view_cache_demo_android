@@ -655,11 +655,14 @@ public class DrawView extends android.view.View
                     if (DoFling)
                       {
                         final double CurrentTime = System.currentTimeMillis() / 1000.0;
+                        final float InitialAttenuate = 2.0f; /* attenuates initial speed */
+                        final float FinalAttenuate = 1.0f; /* attenuates duration of scroll */
                         final float ScrollDuration =
                                 (float)Math.hypot(XVelocity, YVelocity)
                             /
-                                (float)Math.hypot(getWidth(), getHeight());
-                        final float Attenuate = 4.0f;
+                                (float)Math.hypot(getWidth(), getHeight())
+                            /
+                                FinalAttenuate;
                         final PointF MouseUp = new PointF(UpEvent.getX(), UpEvent.getY());
                         final PointF EndScroll =
                             FindScrollOffset
@@ -674,14 +677,14 @@ public class DrawView extends android.view.View
                                             *
                                                 ScrollDuration
                                             /
-                                                Attenuate,
+                                                InitialAttenuate,
                                             MouseUp.y
                                         +
                                                 YVelocity
                                             *
                                                 ScrollDuration
                                             /
-                                                Attenuate
+                                                InitialAttenuate
                                       ),
                                 /*ZoomFactor =*/ ZoomFactor
                               );
