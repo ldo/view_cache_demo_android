@@ -38,6 +38,15 @@ public class DrawView extends android.view.View
 
     protected Drawer DrawWhat;
     protected boolean UseCaching = true;
+    public interface OnTouchListener
+      {
+        public void OnTouch
+          (
+            DrawView TheView,
+            PointF Where
+          );
+      }
+    protected OnTouchListener OnTouch = null;
 
     protected void Init
       (
@@ -85,7 +94,7 @@ public class DrawView extends android.view.View
     Mapping between image coordinates and view coordinates
 */
 
-    static PointF MapRect
+    public static PointF MapRect
       (
         PointF Pt,
         RectF Src,
@@ -113,7 +122,7 @@ public class DrawView extends android.view.View
               );
       } /*MapRect*/
 
-    protected PointF GetViewSize
+    public PointF GetViewSize
       (
         float ZoomFactor
       )
@@ -151,7 +160,7 @@ public class DrawView extends android.view.View
             ViewSize;
       } /*GetViewSize*/
 
-    protected PointF GetViewSize()
+    public PointF GetViewSize()
       /* gets the image bounds in view coordinates, adjusted for the current
         zoom setting. */
       {
@@ -159,7 +168,7 @@ public class DrawView extends android.view.View
             GetViewSize(ZoomFactor);
       } /*GetViewSize*/
 
-    protected RectF GetViewBounds
+    public RectF GetViewBounds
       (
         float ZoomFactor
       )
@@ -169,7 +178,7 @@ public class DrawView extends android.view.View
             new RectF(0.0f, 0.0f, ViewSize.x, ViewSize.y);
       } /*GetViewBounds*/
 
-    protected RectF GetScrolledViewBounds
+    public RectF GetScrolledViewBounds
       (
         PointF ScrollOffset,
         float ZoomFactor
@@ -188,7 +197,7 @@ public class DrawView extends android.view.View
             ViewBounds;
       } /*GetScrolledViewBounds*/
 
-    protected RectF GetScrolledViewBounds()
+    public RectF GetScrolledViewBounds()
       /* gets the image bounds in view coordinates, adjusted for the current
         scroll offset and zoom setting. */
       {
@@ -196,7 +205,7 @@ public class DrawView extends android.view.View
             GetScrolledViewBounds(ScrollOffset, ZoomFactor);
       } /*GetScrolledViewBounds*/
 
-    protected PointF DrawToView
+    public PointF DrawToView
       (
         PointF DrawCoords,
         PointF ScrollOffset,
@@ -214,7 +223,7 @@ public class DrawView extends android.view.View
               );
       } /*DrawToView*/
 
-    protected PointF DrawToView
+    public PointF DrawToView
       (
         PointF DrawCoords
       )
@@ -225,7 +234,7 @@ public class DrawView extends android.view.View
             MapRect(DrawCoords, DrawWhat.GetBounds(), GetScrolledViewBounds());
       } /*DrawToView*/
 
-    protected PointF ViewToDraw
+    public PointF ViewToDraw
       (
         PointF ViewCoords,
         PointF ScrollOffset,
@@ -243,7 +252,7 @@ public class DrawView extends android.view.View
               );
       } /*ViewToDraw*/
 
-    protected PointF ViewToDraw
+    public PointF ViewToDraw
       (
         PointF ViewCoords
       )
@@ -254,7 +263,7 @@ public class DrawView extends android.view.View
             ViewToDraw(ViewCoords, ScrollOffset, ZoomFactor);
       } /*ViewToDraw*/
 
-    protected PointF FindScrollOffset
+    public PointF FindScrollOffset
       (
         PointF DrawCoords,
         PointF ViewCoords,
@@ -865,29 +874,19 @@ public class DrawView extends android.view.View
                 Handled = true;
             break;
             case MotionEvent.ACTION_UP:
-                if (LastMouse1 != null && !MouseMoved)
+                if (LastMouse1 != null && !MouseMoved && OnTouch != null)
                   {
-                  /* move point that user tapped to centre of view if possible */
-                    ScrollTo
+                    OnTouch.OnTouch
                       (
-                        FindScrollOffset
-                          (
-                            /*DrawCoords =*/
-                                ViewToDraw
-                                  (
-                                    LastMouse2 != null ?
-                                        new PointF
-                                          (
-                                            (LastMouse1.x + LastMouse2.x) / 2.0f,
-                                            (LastMouse1.y + LastMouse2.y) / 2.0f
-                                          )
-                                    :
-                                        LastMouse1
-                                  ),
-                            /*ViewCoords =*/ new PointF(getWidth() / 2.0f, getHeight() / 2.0f),
-                            /*ZoomFactor =*/ ZoomFactor
-                          ),
-                        true
+                        this,
+                        LastMouse2 != null ?
+                            new PointF
+                              (
+                                (LastMouse1.x + LastMouse2.x) / 2.0f,
+                                (LastMouse1.y + LastMouse2.y) / 2.0f
+                              )
+                        :
+                            LastMouse1
                       );
                   } /*if*/
                 LastMouse1 = null;
@@ -1032,6 +1031,14 @@ public class DrawView extends android.view.View
       /* fixme: need to rebuild cache and redraw if I allow user to change image on the fly */
       } /*SetDrawer*/
 
+    public void SetOnTouchListener
+      (
+        OnTouchListener OnTouch
+      )
+      {
+        this.OnTouch = OnTouch;
+      } /*SetOnTouchListener*/
+
     public boolean GetUseCaching()
       {
         return
@@ -1049,6 +1056,12 @@ public class DrawView extends android.view.View
             ForgetViewCache();
           } /*if*/
       } /*SetUseCaching*/
+
+    public float GetZoomFactor()
+      {
+        return
+            ZoomFactor;
+      } /*GetZoomFactor*/
 
     public void ZoomBy
       (

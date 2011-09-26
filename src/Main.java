@@ -128,6 +128,35 @@ public class Main extends android.app.Activity
         Zoomer = (android.widget.ZoomControls)findViewById(R.id.viewzoomer);
         TheDrawView = (DrawView)findViewById(R.id.drawview);
         TheDrawView.SetDrawer(DrawWhat);
+        TheDrawView.SetOnTouchListener
+          (
+            new DrawView.OnTouchListener()
+              {
+                public void OnTouch
+                  (
+                    DrawView TheDrawView,
+                    android.graphics.PointF Where
+                  )
+                  {
+                  /* move point that user tapped to centre of view if possible */
+                    TheDrawView.ScrollTo
+                      (
+                        TheDrawView.FindScrollOffset
+                          (
+                            /*DrawCoords =*/ TheDrawView.ViewToDraw(Where),
+                            /*ViewCoords =*/
+                                new android.graphics.PointF
+                                  (
+                                    TheDrawView.getWidth() / 2.0f,
+                                    TheDrawView.getHeight() / 2.0f
+                                  ),
+                            /*ZoomFactor =*/ TheDrawView.GetZoomFactor()
+                          ),
+                        true
+                      );
+                  } /*onTouch*/
+              } /*View.OnTouchListener*/
+          );
         Zoomer.setOnZoomInClickListener
           (
             new android.view.View.OnClickListener()
