@@ -98,7 +98,7 @@ public class SampleDrawer implements Drawer
             final android.graphics.Paint BG = new android.graphics.Paint();
             BG.setStyle(android.graphics.Paint.Style.FILL);
             BG.setColor(BackgroundColor);
-            Dest.drawPaint(BG);
+            Dest.drawRect(DestRect, BG);
           }
           {
             final android.graphics.Path p = new android.graphics.Path();
