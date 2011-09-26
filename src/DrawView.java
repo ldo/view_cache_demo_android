@@ -1163,7 +1163,7 @@ public class DrawView extends android.view.View
                     *
                         ScrollScale
                     /
-                        (ViewBounds.right - ViewBounds.left - getWidth())
+                        (ViewBounds.right - ViewBounds.left)
                   )
             :
                 0;
@@ -1195,7 +1195,7 @@ public class DrawView extends android.view.View
                     *
                         ScrollScale
                     /
-                        (ViewBounds.bottom - ViewBounds.top - getHeight())
+                        (ViewBounds.bottom - ViewBounds.top)
                   )
             :
                 0;
