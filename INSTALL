@@ -53,5 +53,5 @@ on that device. Now do
 
     ant install
 
-which will invoke the building and signing (as necessary), and
-then install the package on the default connected Android device.
+which will invoke the building and signing, and then install the
+package on the default connected Android device.
