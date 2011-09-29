@@ -997,15 +997,25 @@ public class DrawView extends android.view.View
     @Override
     public android.os.Parcelable onSaveInstanceState()
       {
+      /* Instead of saving ScrollOffset directly, I save the image coordinates
+        at the centre of the view. This makes for more predictable behaviour
+        on an orientation change. But it does mean I cannot properly restore
+        the state until my layout dimensions have been assigned. */
+        final PointF DrawCenter = ViewToDraw
+          (
+            new PointF(getWidth() / 2.0f, getHeight() / 2.0f)
+          );
         return
             new SavedDrawViewState
               (
                 super.onSaveInstanceState(),
-                ScrollOffset.x,
-                ScrollOffset.y,
+                DrawCenter.x,
+                DrawCenter.y,
                 ZoomFactor
               );
       } /*onSaveInstanceState*/
+
+    private android.os.Parcelable LastSavedState = null;
 
     @Override
     public void onRestoreInstanceState
@@ -1015,11 +1025,38 @@ public class DrawView extends android.view.View
       {
         final SavedDrawViewState MyState = (SavedDrawViewState)SavedState;
         super.onRestoreInstanceState(MyState.SuperState);
-        ScrollOffset.x = MyState.ScrollX;
-        ScrollOffset.y = MyState.ScrollY;
-        ZoomFactor = MyState.ZoomFactor;
-        invalidate();
+      /* defer rest of restoration to after I have been given layout dimensions */
+        LastSavedState = SavedState;
       } /*onRestoreInstanceState*/
+
+    @Override
+    protected void onLayout
+      (
+        boolean Changed,
+        int Left,
+        int Top,
+        int Right,
+        int Bottom
+      )
+      /* I just use this as a convenient place to finish restoring my instance state,
+        because I know getWidth and getHeight will return nonzero values by this point. */
+      {
+        super.onLayout(Changed, Left, Top, Right, Bottom);
+        if (LastSavedState != null)
+          {
+          /* finish restoration of saved instance state */
+            final SavedDrawViewState MyState = (SavedDrawViewState)LastSavedState;
+            ScrollOffset = FindScrollOffset
+              (
+                /*DrawCoords =*/ new PointF(MyState.ScrollX, MyState.ScrollY),
+                /*ViewCoords =*/ new PointF(getWidth() / 2.0f, getHeight() / 2.0f),
+                /*ZoomFactor =*/ MyState.ZoomFactor
+              );
+            ZoomFactor = MyState.ZoomFactor;
+            invalidate();
+            LastSavedState = null;
+          } /*if*/
+      } /*onLayout*/
 
 /*
     public widget-control methods
