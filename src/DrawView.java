@@ -567,7 +567,8 @@ public class DrawView extends android.view.View
     protected int
         Mouse1ID = -1,
         Mouse2ID = -1;
-    protected boolean MouseMoved = false;
+    protected boolean
+        MouseMoved = false;
 
     protected class ScrollAnimator implements Runnable
       {
@@ -723,6 +724,7 @@ public class DrawView extends android.view.View
                 Handled = true;
             break;
             case MotionEvent.ACTION_POINTER_DOWN:
+                MouseMoved = true;
                   {
                     final int PointerIndex =
                             (TheEvent.getAction() & MotionEvent.ACTION_POINTER_ID_MASK)
@@ -778,49 +780,6 @@ public class DrawView extends android.view.View
                                 null;
                         if (ThisMouse1 != null || ThisMouse2 != null)
                           {
-                            final PointF ThisMouse =
-                                ThisMouse1 != null ?
-                                    ThisMouse2 != null ?
-                                        new PointF
-                                          (
-                                            (ThisMouse1.x + ThisMouse2.x) / 2.0f,
-                                            (ThisMouse1.y + ThisMouse2.y) / 2.0f
-                                          )
-                                    :
-                                        ThisMouse1
-                                :
-                                    ThisMouse2;
-                            final PointF LastMouse =
-                                ThisMouse1 != null ?
-                                    ThisMouse2 != null ?
-                                        new PointF
-                                          (
-                                            (LastMouse1.x + LastMouse2.x) / 2.0f,
-                                            (LastMouse1.y + LastMouse2.y) / 2.0f
-                                          )
-                                    :
-                                        LastMouse1
-                                :
-                                    LastMouse2;
-                            ScrollTo
-                              (
-                                FindScrollOffset
-                                  (
-                                    /*DrawCoords =*/ ViewToDraw(LastMouse),
-                                    /*ViewCoords =*/ ThisMouse,
-                                    /*ZoomFactor =*/ ZoomFactor
-                                  ),
-                                false
-                              );
-                            if
-                              (
-                                    Math.hypot(ThisMouse.x - LastMouse.x, ThisMouse.y - LastMouse.y)
-                                >
-                                    2.0
-                              )
-                              {
-                                MouseMoved = true;
-                              } /*if*/
                             if (ThisMouse1 != null && ThisMouse2 != null)
                               {
                               /* pinch to zoom */
@@ -842,6 +801,62 @@ public class DrawView extends android.view.View
                                   )
                                   {
                                     ZoomBy(ThisDistance /  LastDistance);
+                                  } /*if*/
+                              }
+                            else
+                              {
+                                final PointF ThisMouse =
+                                    ThisMouse1 != null ?
+                                        ThisMouse2 != null ?
+                                            new PointF
+                                              (
+                                                (ThisMouse1.x + ThisMouse2.x) / 2.0f,
+                                                (ThisMouse1.y + ThisMouse2.y) / 2.0f
+                                              )
+                                        :
+                                            ThisMouse1
+                                    :
+                                        ThisMouse2;
+                                final PointF LastMouse =
+                                    ThisMouse1 != null ?
+                                        ThisMouse2 != null ?
+                                            new PointF
+                                              (
+                                                (LastMouse1.x + LastMouse2.x) / 2.0f,
+                                                (LastMouse1.y + LastMouse2.y) / 2.0f
+                                              )
+                                        :
+                                            LastMouse1
+                                    :
+                                        LastMouse2;
+                                if
+                                  (
+                                        MouseMoved
+                                    ||
+                                            Math.hypot
+                                              (
+                                                ThisMouse.x - LastMouse.x,
+                                                ThisMouse.y - LastMouse.y
+                                              )
+                                        >
+                                            Math.sqrt
+                                              (
+                                                android.view.ViewConfiguration.get(Context)
+                                                    .getScaledTouchSlop()
+                                              )
+                                  )
+                                  {
+                                    MouseMoved = true;
+                                    ScrollTo
+                                      (
+                                        FindScrollOffset
+                                          (
+                                            /*DrawCoords =*/ ViewToDraw(LastMouse),
+                                            /*ViewCoords =*/ ThisMouse,
+                                            /*ZoomFactor =*/ ZoomFactor
+                                          ),
+                                        false
+                                      );
                                   } /*if*/
                               } /*if*/
                             LastMouse1 = ThisMouse1;
