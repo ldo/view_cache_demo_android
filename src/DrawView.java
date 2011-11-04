@@ -25,6 +25,15 @@ import android.view.MotionEvent;
 
 public class DrawView extends android.view.View
   {
+    public interface ContextMenuAction
+      {
+        public void CreateContextMenu
+          (
+            android.view.ContextMenu TheMenu,
+            PointF MouseDown /* in view coords, can use ViewToDraw (below) to get draw coords */
+          );
+      } /*ContextMenuAction*/
+
     protected android.content.Context Context;
     protected float ZoomFactor;
     protected PointF ScrollOffset;
@@ -48,6 +57,8 @@ public class DrawView extends android.view.View
       }
     protected OnTouchListener OnTouch = null;
 
+    private android.os.Vibrator Vibrate;
+
     protected void Init
       (
         android.content.Context Context
@@ -59,6 +70,8 @@ public class DrawView extends android.view.View
         ZoomFactor = 1.0f;
         setHorizontalFadingEdgeEnabled(true);
         setVerticalFadingEdgeEnabled(true);
+        Vibrate =
+            (android.os.Vibrator)Context.getSystemService(android.content.Context.VIBRATOR_SERVICE);
       } /*Init*/
 
     public DrawView
@@ -89,6 +102,14 @@ public class DrawView extends android.view.View
         super(Context, Attributes, DefaultStyle);
         Init(Context);
       } /*DrawView*/
+
+    public void SetContextMenuAction
+      (
+        ContextMenuAction TheAction
+      )
+      {
+        DoContextMenu = TheAction;
+      } /*SetContextMenuAction*/
 
 /*
     Mapping between image coordinates and view coordinates
@@ -569,6 +590,8 @@ public class DrawView extends android.view.View
         Mouse2ID = -1;
     protected boolean
         MouseMoved = false;
+    protected ContextMenuAction
+        DoContextMenu = null;
 
     protected class ScrollAnimator implements Runnable
       {
@@ -704,6 +727,22 @@ public class DrawView extends android.view.View
               } /*GestureDetector.SimpleOnGestureListener*/
           );
 
+    protected final Runnable LongClicker =
+      /* do my own long-click handling, because setOnLongClickListener doesn't seem to work */
+        new Runnable()
+          {
+            public void run()
+              {
+                System.err.println("DrawView: LongClicker activated"); /* debug */
+                showContextMenu();
+              /* stop handling cursor/scale movements */
+                LastMouse1 = null;
+                LastMouse2 = null;
+                Mouse1ID = -1;
+                Mouse2ID = -1;
+              } /*run*/
+          } /*Runnable*/;
+
     @Override
     public boolean onTouchEvent
       (
@@ -722,9 +761,18 @@ public class DrawView extends android.view.View
                 Mouse1ID = TheEvent.getPointerId(0);
                 MouseMoved = false;
                 Handled = true;
+                getHandler().postDelayed
+                  (
+                    LongClicker,
+                    android.view.ViewConfiguration.getLongPressTimeout()
+                  );
             break;
             case MotionEvent.ACTION_POINTER_DOWN:
-                MouseMoved = true;
+                if (!MouseMoved)
+                  {
+                    getHandler().removeCallbacks(LongClicker);
+                    MouseMoved = true;
+                  } /*if*/
                   {
                     final int PointerIndex =
                             (TheEvent.getAction() & MotionEvent.ACTION_POINTER_ID_MASK)
@@ -846,7 +894,16 @@ public class DrawView extends android.view.View
                                               )
                                   )
                                   {
-                                    MouseMoved = true;
+                                    if (!MouseMoved)
+                                      {
+                                        getHandler().removeCallbacks(LongClicker);
+                                        System.err.printf
+                                          (
+                                            "DrawView mouse moved, scaled touch slop = %d\n",
+                                            android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop()
+                                          ); /* debug */
+                                        MouseMoved = true;
+                                      } /*if*/
                                     ScrollTo
                                       (
                                         FindScrollOffset
@@ -892,6 +949,7 @@ public class DrawView extends android.view.View
                 Handled = true;
             break;
             case MotionEvent.ACTION_UP:
+                getHandler().removeCallbacks(LongClicker);
                 if (LastMouse1 != null && !MouseMoved && OnTouch != null)
                   {
                     OnTouch.OnTouch
@@ -925,6 +983,23 @@ public class DrawView extends android.view.View
         return
             Handled;
       } /*onTouchEvent*/
+
+    @Override
+    public void onCreateContextMenu
+      (
+        android.view.ContextMenu TheMenu
+      )
+      {
+        if (DoContextMenu != null)
+          {
+            Vibrate.vibrate(20);
+            DoContextMenu.CreateContextMenu
+              (
+                TheMenu,
+                new PointF(LastMouse1.x, LastMouse1.y)
+              );
+          } /*if*/
+      } /*onCreateContextMenu*/
 
 /*
     Implementation of saving/restoring instance state. Doing this

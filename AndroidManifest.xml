@@ -2,11 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="nz.gen.geek_central.view_cache_demo"
     android:versionCode="1"
-    android:versionName="15256.1"
+    android:versionName="15282.3"
 >
     <uses-sdk
         android:minSdkVersion="7"
     />
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- <uses-feature android:name="android.hardware.touchscreen.multitouch"/> --> <!-- perhaps when it works more smoothly -->
     <application
         android:label="@string/app_name"
         android:icon="@drawable/icon"

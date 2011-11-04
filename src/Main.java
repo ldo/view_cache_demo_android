@@ -157,6 +157,32 @@ public class Main extends android.app.Activity
                   } /*onTouch*/
               } /*View.OnTouchListener*/
           );
+        TheDrawView.SetContextMenuAction
+          (
+            new DrawView.ContextMenuAction()
+              {
+                public void CreateContextMenu
+                  (
+                    android.view.ContextMenu TheMenu,
+                    android.graphics.PointF ViewMouseDown
+                  )
+                  {
+                    final android.graphics.PointF DrawMouseDown = TheDrawView.ViewToDraw(ViewMouseDown);
+                    android.widget.Toast.makeText
+                      (
+                        /*context =*/ Main.this,
+                        /*text =*/
+                            String.format
+                              (
+                                "long-click at (%.1f, %.1f) => %.1f, %.1f)",
+                                ViewMouseDown.x, ViewMouseDown.y,
+                                DrawMouseDown.x, DrawMouseDown.y
+                              ),
+                        /*duration =*/ android.widget.Toast.LENGTH_SHORT
+                      ).show();
+                  } /*CreateContextMenu*/
+              } /*DrawView.ContextMenuAction*/
+          );
         Zoomer.setOnZoomInClickListener
           (
             new android.view.View.OnClickListener()
