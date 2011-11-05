@@ -128,11 +128,11 @@ public class Main extends android.app.Activity
         Zoomer = (android.widget.ZoomControls)findViewById(R.id.viewzoomer);
         TheDrawView = (DrawView)findViewById(R.id.drawview);
         TheDrawView.SetDrawer(DrawWhat);
-        TheDrawView.SetOnTouchListener
+        TheDrawView.SetOnDoubleTapListener
           (
-            new DrawView.OnTouchListener()
+            new DrawView.OnDoubleTapListener()
               {
-                public void OnTouch
+                public void OnDoubleTap
                   (
                     DrawView TheDrawView,
                     android.graphics.PointF Where
@@ -154,8 +154,8 @@ public class Main extends android.app.Activity
                           ),
                         true
                       );
-                  } /*onTouch*/
-              } /*View.OnTouchListener*/
+                  } /*onDoubleTap*/
+              } /*View.OnDoubleTapListener*/
           );
         TheDrawView.SetContextMenuAction
           (

@@ -1,7 +1,8 @@
 package nz.gen.geek_central.view_cache_demo;
 /*
-    Demonstration of how to do smooth scrolling of a complex
-    image by careful caching of bitmaps--actual view caching.
+    Demonstration of how to do smooth scrolling of a complex image by
+    careful caching of bitmaps--actual view caching. This view also
+    allows custom handling of long-tap and double-tap events.
 
     Copyright 2011 by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 
@@ -47,15 +48,15 @@ public class DrawView extends android.view.View
 
     protected Drawer DrawWhat;
     protected boolean UseCaching = true;
-    public interface OnTouchListener
+    public interface OnDoubleTapListener
       {
-        public void OnTouch
+        public void OnDoubleTap
           (
             DrawView TheView,
             PointF Where
           );
       }
-    protected OnTouchListener OnTouch = null;
+    protected OnDoubleTapListener OnDoubleTap = null;
 
     private android.os.Vibrator Vibrate;
 
@@ -585,11 +586,14 @@ public class DrawView extends android.view.View
     protected PointF
         LastMouse1 = null,
         LastMouse2 = null;
+    protected MotionEvent
+        FirstTap;
     protected int
         Mouse1ID = -1,
         Mouse2ID = -1;
     protected boolean
-        MouseMoved = false;
+        MouseMoved = false,
+        ExpectDoubleTap = false;
     protected ContextMenuAction
         DoContextMenu = null;
 
@@ -773,6 +777,7 @@ public class DrawView extends android.view.View
                     getHandler().removeCallbacks(LongClicker);
                     MouseMoved = true;
                   } /*if*/
+                ExpectDoubleTap = false;
                   {
                     final int PointerIndex =
                             (TheEvent.getAction() & MotionEvent.ACTION_POINTER_ID_MASK)
@@ -904,6 +909,7 @@ public class DrawView extends android.view.View
                                           ); /* debug */
                                         MouseMoved = true;
                                       } /*if*/
+                                    ExpectDoubleTap = false;
                                     ScrollTo
                                       (
                                         FindScrollOffset
@@ -950,20 +956,43 @@ public class DrawView extends android.view.View
             break;
             case MotionEvent.ACTION_UP:
                 getHandler().removeCallbacks(LongClicker);
-                if (LastMouse1 != null && !MouseMoved && OnTouch != null)
+                if (LastMouse1 != null && !MouseMoved)
                   {
-                    OnTouch.OnTouch
-                      (
-                        this,
-                        LastMouse2 != null ?
-                            new PointF
+                    if (ExpectDoubleTap)
+                      {
+                        if
+                          (
+                                    TheEvent.getEventTime() - FirstTap.getEventTime()
+                                <=
+                                    android.view.ViewConfiguration.getDoubleTapTimeout()
+                            &&
+                                OnDoubleTap != null
+                          )
+                          {
+                            OnDoubleTap.OnDoubleTap
                               (
-                                (LastMouse1.x + LastMouse2.x) / 2.0f,
-                                (LastMouse1.y + LastMouse2.y) / 2.0f
-                              )
-                        :
-                            LastMouse1
-                      );
+                                this,
+                                LastMouse2 != null ?
+                                    new PointF
+                                      (
+                                        (LastMouse1.x + LastMouse2.x) / 2.0f,
+                                        (LastMouse1.y + LastMouse2.y) / 2.0f
+                                      )
+                                :
+                                    LastMouse1
+                              );
+                          } /*if*/
+                        ExpectDoubleTap = false;
+                      }
+                    else
+                      {
+                        FirstTap = TheEvent;
+                        ExpectDoubleTap = true;
+                      } /*if*/
+                  }
+                else
+                  {
+                    ExpectDoubleTap = false;
                   } /*if*/
                 LastMouse1 = null;
                 LastMouse2 = null;
@@ -1161,13 +1190,13 @@ public class DrawView extends android.view.View
       /* fixme: need to rebuild cache and redraw if I allow user to change image on the fly */
       } /*SetDrawer*/
 
-    public void SetOnTouchListener
+    public void SetOnDoubleTapListener
       (
-        OnTouchListener OnTouch
+        OnDoubleTapListener OnDoubleTap
       )
       {
-        this.OnTouch = OnTouch;
-      } /*SetOnTouchListener*/
+        this.OnDoubleTap = OnDoubleTap;
+      } /*SetOnDoubleTapListener*/
 
     public boolean GetUseCaching()
       {

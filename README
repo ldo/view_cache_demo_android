@@ -3,6 +3,9 @@ smooth scrolling of a complex image view by caching a bitmap rendering
 of the image. Without this, scrolling would be jerky because of the
 time taken to redraw the view each time.
 
+The DrawView class also demonstrates custom handling of long-tap
+and double-tap events.
+
 Contents:
     src/ -- Java sources for the Android app
     res/ -- resources for the Android app
