@@ -2,7 +2,9 @@
 <resources>
     <string name="app_name">View Cache Demo</string>
 
-    <string name="cache_control">Cache Control:</string>
-    <string name="off">Off</string>
-    <string name="on">On</string>
+    <string name="settings">Settings:</string>
+    <string name="cache_off">Cache Off</string>
+    <string name="cache_on">Cache On</string>
+    <string name="complexity_low">Low Complexity</string>
+    <string name="complexity_high">High Complexity</string>
 </resources>

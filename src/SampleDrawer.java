@@ -30,16 +30,19 @@ public class SampleDrawer implements Drawer
     protected final int StrokeColor = 0xff240896;
     protected final int BackgroundColor = 0xffbdaa7d;
     protected final float Radius = 250.0f;
-    protected final int NrLevels = 12; /* controls complexity of pattern */
+    protected final int LowComplexityLevels = 9;
+    protected final int HighComplexityLevels = 12;
   /* try playing with these, for extra fun: */
     protected final float Kink = 0.7f; /* acuteness of corner bend */
     protected final float Skew = -0.2f; /* asymmetry of subdivision */
+    protected int NrLevels; /* controls complexity of pattern */
 
     public SampleDrawer()
       {
         final float Fudge = 1.3f; /* quick-and-dirty adjust for spillover of skewed pattern */
         final float FRadius = Radius * Fudge;
         Bounds = new RectF(-FRadius, -FRadius, FRadius, FRadius);
+        NrLevels = HighComplexityLevels;
       } /*SampleDrawer*/
 
     protected void DrawSegment
@@ -140,5 +143,19 @@ public class SampleDrawer implements Drawer
             Dest.drawPath(p, How);
           }
       } /*Draw*/
+
+    public void SetComplexity
+      (
+        boolean High /* false for low complexity */
+      )
+      {
+        NrLevels = High ? HighComplexityLevels : LowComplexityLevels;
+      } /*SetComplexity*/
+
+    public boolean GetComplexity()
+      {
+        return
+            NrLevels != LowComplexityLevels;
+      } /*GetComplexity*/
 
   } /*SampleDrawer*/
