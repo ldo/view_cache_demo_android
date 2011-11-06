@@ -641,6 +641,7 @@ public class DrawView extends android.view.View
                     false
                   );
                 final android.os.Handler MyHandler = getHandler();
+                  /* can be null if activity is being destroyed */
                 if (MyHandler != null && CurrentTime < EndTime)
                   {
                     MyHandler.post(this);
