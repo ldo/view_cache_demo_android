@@ -18,9 +18,15 @@ package nz.gen.geek_central.view_cache_demo;
     the License.
 */
 
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.RadioGroup;
+import android.widget.RadioButton;
+import android.widget.TextView;
+
 public class Main extends android.app.Activity
   {
-    protected android.view.ViewGroup MainLayout;
+    protected ViewGroup MainLayout;
     protected android.widget.ZoomControls Zoomer;
     protected SampleDrawer DrawWhat;
     protected DrawView TheDrawView;
@@ -30,7 +36,7 @@ public class Main extends android.app.Activity
         implements android.content.DialogInterface.OnDismissListener
       {
         final android.content.Context ctx;
-        android.widget.RadioGroup CachingButtons, ComplexityButtons;
+        RadioGroup CachingButtons, ComplexityButtons;
 
         public ControlDialog
           (
@@ -48,33 +54,33 @@ public class Main extends android.app.Activity
           )
           {
             setTitle(R.string.settings);
-            final android.widget.LinearLayout MainLayout = new android.widget.LinearLayout(ctx);
-            MainLayout.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            final LinearLayout MainLayout = new LinearLayout(ctx);
+            MainLayout.setOrientation(LinearLayout.HORIZONTAL);
             setContentView(MainLayout); 
-            final android.view.ViewGroup.LayoutParams ButtonLayoutParams =
-                new android.view.ViewGroup.LayoutParams
+            final ViewGroup.LayoutParams ButtonLayoutParams =
+                new ViewGroup.LayoutParams
                   (
-                    android.view.ViewGroup.LayoutParams.FILL_PARENT,
-                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                    ViewGroup.LayoutParams.FILL_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
                   );
-            final android.view.ViewGroup.LayoutParams GroupLayoutParams =
-                new android.view.ViewGroup.LayoutParams
+            final ViewGroup.LayoutParams GroupLayoutParams =
+                new ViewGroup.LayoutParams
                   (
-                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
-                    android.view.ViewGroup.LayoutParams.FILL_PARENT
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.FILL_PARENT
                   );
               {
-                final android.widget.LinearLayout ButtonGroupLayout =
-                    new android.widget.LinearLayout(ctx);
-                ButtonGroupLayout.setOrientation(android.widget.LinearLayout.VERTICAL);
-                CachingButtons = new android.widget.RadioGroup(ctx);
-                final android.widget.RadioButton CachingOn =
-                    new android.widget.RadioButton(ctx);
-                CachingOn.setText(R.string.cache_on);
+                final LinearLayout ButtonGroupLayout = new LinearLayout(ctx);
+                ButtonGroupLayout.setOrientation(LinearLayout.VERTICAL);
+                final TextView Heading = new TextView(ctx);
+                Heading.setText(R.string.cache_control);
+                ButtonGroupLayout.addView(Heading);
+                CachingButtons = new RadioGroup(ctx);
+                final RadioButton CachingOn = new RadioButton(ctx);
+                CachingOn.setText(R.string.on);
                 CachingOn.setId(1);
-                final android.widget.RadioButton CachingOff =
-                    new android.widget.RadioButton(ctx);
-                CachingOff.setText(R.string.cache_off);
+                final RadioButton CachingOff = new RadioButton(ctx);
+                CachingOff.setText(R.string.off);
                 CachingOff.setId(0);
                 CachingButtons.addView(CachingOn, 0, ButtonLayoutParams);
                 CachingButtons.addView(CachingOff, 1, ButtonLayoutParams);
@@ -82,17 +88,17 @@ public class Main extends android.app.Activity
                 MainLayout.addView(ButtonGroupLayout, GroupLayoutParams);
               }
               {
-                final android.widget.LinearLayout ButtonGroupLayout =
-                    new android.widget.LinearLayout(ctx);
-                ButtonGroupLayout.setOrientation(android.widget.LinearLayout.VERTICAL);
-                ComplexityButtons = new android.widget.RadioGroup(ctx);
-                final android.widget.RadioButton ComplexityHigh =
-                    new android.widget.RadioButton(ctx);
-                ComplexityHigh.setText(R.string.complexity_high);
+                final LinearLayout ButtonGroupLayout = new LinearLayout(ctx);
+                ButtonGroupLayout.setOrientation(LinearLayout.VERTICAL);
+                final TextView Heading = new TextView(ctx);
+                Heading.setText(R.string.complexity);
+                ButtonGroupLayout.addView(Heading);
+                ComplexityButtons = new RadioGroup(ctx);
+                final RadioButton ComplexityHigh = new RadioButton(ctx);
+                ComplexityHigh.setText(R.string.high);
                 ComplexityHigh.setId(1);
-                final android.widget.RadioButton ComplexityLow =
-                    new android.widget.RadioButton(ctx);
-                ComplexityLow.setText(R.string.complexity_low);
+                final RadioButton ComplexityLow = new RadioButton(ctx);
+                ComplexityLow.setText(R.string.low);
                 ComplexityLow.setId(0);
                 ComplexityButtons.addView(ComplexityHigh, 0, ButtonLayoutParams);
                 ComplexityButtons.addView(ComplexityLow, 1, ButtonLayoutParams);
