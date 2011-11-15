@@ -1,9 +1,9 @@
 To build the view_cache_demo app for Android, you will need the
 Android SDK, available from <http://developer.android.com/>, along
-with its with its prerequisites, including a Java developer kit
-(either OpenJDK or the Sun JDK) and Ant. Don't forget to point the
-JAVA_HOME environment variable to where the JDK is installed,
-e.g. with OpenJDK on Debian-AMD64:
+with its prerequisites, including a Java developer kit (either OpenJDK
+or the Sun JDK) and Ant. Don't forget to point the JAVA_HOME
+environment variable to where the JDK is installed, e.g. with OpenJDK
+on Debian-AMD64:
 
     export JAVA_HOME=/usr/lib/jvm/java-6-openjdk-amd64/jre
 
