@@ -738,7 +738,6 @@ public class DrawView extends android.view.View
           {
             public void run()
               {
-                System.err.println("DrawView: LongClicker activated"); /* debug */
                 showContextMenu();
               /* stop handling cursor/scale movements */
                 LastMouse1 = null;
