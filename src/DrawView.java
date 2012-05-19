@@ -904,11 +904,6 @@ public class DrawView extends android.view.View
                                     if (!MouseMoved)
                                       {
                                         getHandler().removeCallbacks(LongClicker);
-                                        System.err.printf
-                                          (
-                                            "DrawView mouse moved, scaled touch slop = %d\n",
-                                            android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop()
-                                          ); /* debug */
                                         MouseMoved = true;
                                       } /*if*/
                                     ExpectDoubleTap = false;
