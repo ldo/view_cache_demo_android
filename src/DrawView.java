@@ -4,7 +4,7 @@ package nz.gen.geek_central.view_cache_demo;
     careful caching of bitmaps--actual view caching. This view also
     allows custom handling of long-tap and double-tap events.
 
-    Copyright 2011 by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
+    Copyright 2011, 2012 by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 
     Licensed under the Apache License, Version 2.0 (the "License"); you may not
     use this file except in compliance with the License. You may obtain a copy of
@@ -48,15 +48,17 @@ public class DrawView extends android.view.View
 
     protected Drawer DrawWhat;
     protected boolean UseCaching = true;
-    public interface OnDoubleTapListener
+    public interface OnTapListener
       {
-        public void OnDoubleTap
+        public void OnTap
           (
             DrawView TheView,
             PointF Where
           );
       }
-    protected OnDoubleTapListener OnDoubleTap = null;
+    protected OnTapListener
+        OnSingleTap = null,
+        OnDoubleTap = null;
 
     private android.os.Vibrator Vibrate;
 
@@ -958,18 +960,19 @@ public class DrawView extends android.view.View
                 getHandler().removeCallbacks(LongClicker);
                 if (LastMouse1 != null && !MouseMoved)
                   {
-                    if (ExpectDoubleTap)
+                    if
+                      (
+                            ExpectDoubleTap
+                        &&
+                                TheEvent.getEventTime() - FirstTap.getEventTime()
+                            <=
+                                android.view.ViewConfiguration.getDoubleTapTimeout()
+                          /* fixme: should check distance moved against getScaledDoubleTapSlop() as well */
+                      )
                       {
-                        if
-                          (
-                                    TheEvent.getEventTime() - FirstTap.getEventTime()
-                                <=
-                                    android.view.ViewConfiguration.getDoubleTapTimeout()
-                            &&
-                                OnDoubleTap != null
-                          )
+                        if (OnDoubleTap != null)
                           {
-                            OnDoubleTap.OnDoubleTap
+                            OnDoubleTap.OnTap
                               (
                                 this,
                                 LastMouse2 != null ?
@@ -986,7 +989,23 @@ public class DrawView extends android.view.View
                       }
                     else
                       {
-                        FirstTap = TheEvent;
+                        if (OnSingleTap != null)
+                          {
+                            OnSingleTap.OnTap
+                              (
+                                this,
+                                LastMouse2 != null ?
+                                    new PointF
+                                      (
+                                        (LastMouse1.x + LastMouse2.x) / 2.0f,
+                                        (LastMouse1.y + LastMouse2.y) / 2.0f
+                                      )
+                                :
+                                    LastMouse1
+                              );
+                          } /*if*/
+                        FirstTap = MotionEvent.obtain(TheEvent);
+                          /* need to make a copy because original object might be reused */
                         ExpectDoubleTap = true;
                       } /*if*/
                   }
@@ -1190,9 +1209,17 @@ public class DrawView extends android.view.View
       /* fixme: need to rebuild cache and redraw if I allow user to change image on the fly */
       } /*SetDrawer*/
 
+    public void SetOnSingleTapListener
+      (
+        OnTapListener OnSingleTap
+      )
+      {
+        this.OnSingleTap = OnSingleTap;
+      } /*SetOnSingleTapListener*/
+
     public void SetOnDoubleTapListener
       (
-        OnDoubleTapListener OnDoubleTap
+        OnTapListener OnDoubleTap
       )
       {
         this.OnDoubleTap = OnDoubleTap;

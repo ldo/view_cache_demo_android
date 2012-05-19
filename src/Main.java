@@ -3,7 +3,7 @@ package nz.gen.geek_central.view_cache_demo;
     Demonstration of how to do smooth scrolling of a complex
     image by careful caching of bitmaps--app mainline.
 
-    Copyright 2011 by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
+    Copyright 2011, 2012 by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 
     Licensed under the Apache License, Version 2.0 (the "License"); you may not
     use this file except in compliance with the License. You may obtain a copy of
@@ -170,11 +170,37 @@ public class Main extends android.app.Activity
         Zoomer = (android.widget.ZoomControls)findViewById(R.id.viewzoomer);
         TheDrawView = (DrawView)findViewById(R.id.drawview);
         TheDrawView.SetDrawer(DrawWhat);
+        TheDrawView.SetOnSingleTapListener
+          (
+            new DrawView.OnTapListener()
+              {
+                public void OnTap
+                  (
+                    DrawView TheDrawView,
+                    android.graphics.PointF ViewMouseDown
+                  )
+                  {
+                    final android.graphics.PointF DrawMouseDown = TheDrawView.ViewToDraw(ViewMouseDown);
+                    android.widget.Toast.makeText
+                      (
+                        /*context =*/ Main.this,
+                        /*text =*/
+                            String.format
+                              (
+                                "single-tap at (%.1f, %.1f) => %.1f, %.1f)",
+                                ViewMouseDown.x, ViewMouseDown.y,
+                                DrawMouseDown.x, DrawMouseDown.y
+                              ),
+                        /*duration =*/ android.widget.Toast.LENGTH_SHORT
+                      ).show();
+                  } /*onTap*/
+              } /*DrawView.OnTapListener*/
+          );
         TheDrawView.SetOnDoubleTapListener
           (
-            new DrawView.OnDoubleTapListener()
+            new DrawView.OnTapListener()
               {
-                public void OnDoubleTap
+                public void OnTap
                   (
                     DrawView TheDrawView,
                     android.graphics.PointF Where
@@ -196,8 +222,8 @@ public class Main extends android.app.Activity
                           ),
                         true
                       );
-                  } /*onDoubleTap*/
-              } /*View.OnDoubleTapListener*/
+                  } /*onTap*/
+              } /*DrawView.OnTapListener*/
           );
         TheDrawView.SetContextMenuAction
           (
