@@ -895,6 +895,8 @@ public class DrawView extends android.view.View
                                               )
                                         >
                                             Math.sqrt
+                                              /* actually shouldn't be taking square root, but
+                                                value seems quite large */
                                               (
                                                 android.view.ViewConfiguration.get(Context)
                                                     .getScaledTouchSlop()
@@ -962,7 +964,15 @@ public class DrawView extends android.view.View
                                 TheEvent.getEventTime() - FirstTap.getEventTime()
                             <=
                                 android.view.ViewConfiguration.getDoubleTapTimeout()
-                          /* fixme: should check distance moved against getScaledDoubleTapSlop() as well */
+                        &&
+                                Math.hypot
+                                  (
+                                    TheEvent.getX() - FirstTap.getX(),
+                                    TheEvent.getY() - FirstTap.getY()
+                                  )
+                            <=
+                                android.view.ViewConfiguration.get(Context)
+                                    .getScaledDoubleTapSlop()
                       )
                       {
                         if (OnDoubleTap != null)

@@ -164,6 +164,17 @@ public class Main extends android.app.Activity
                 MainMetrics.ydpi
               );
           }
+          { /* show some info about interaction parameters */
+            final android.view.ViewConfiguration Config = android.view.ViewConfiguration.get(this);
+            System.err.printf
+              (
+                "View config: scaled touch slop = %d, double-tap slop = %d, double-tap timeout = %.3fs, long press timeout = %.3fs\n",
+                Config.getScaledTouchSlop(),
+                Config.getScaledDoubleTapSlop(),
+                Config.getDoubleTapTimeout() / 1000.0,
+                Config.getLongPressTimeout() / 1000.0
+              );
+          }
         super.onCreate(SavedInstanceState);
         setContentView(R.layout.main);
         DrawWhat = new SampleDrawer();
