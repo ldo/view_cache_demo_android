@@ -23,6 +23,7 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 import android.graphics.Bitmap;
 import android.view.MotionEvent;
+import nz.gen.geek_central.android.useful.BundledSavedState;
 
 public class DrawView extends android.view.View
   {
