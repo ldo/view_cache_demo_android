@@ -1066,77 +1066,6 @@ public class DrawView extends android.view.View
     don't make this clear).
 */
 
-    protected static class SavedDrawViewState extends android.view.AbsSavedState
-      {
-        public static android.os.Parcelable.Creator<SavedDrawViewState> CREATOR =
-            new android.os.Parcelable.Creator<SavedDrawViewState>()
-              {
-                public SavedDrawViewState createFromParcel
-                  (
-                    android.os.Parcel SavedState
-                  )
-                  {
-                    final android.view.AbsSavedState SuperState =
-                        android.view.AbsSavedState.CREATOR.createFromParcel(SavedState);
-                    final android.os.Bundle MyState = SavedState.readBundle();
-                    return
-                        new SavedDrawViewState
-                          (
-                            SuperState,
-                            MyState.getFloat("ScrollX", 0.0f),
-                            MyState.getFloat("ScrollY", 0.0f),
-                            MyState.getFloat("ZoomFactor", 1.0f)
-                          );
-                  } /*createFromParcel*/
-
-                public SavedDrawViewState[] newArray
-                  (
-                    int NrElts
-                  )
-                  {
-                    return
-                        new SavedDrawViewState[NrElts];
-                  } /*newArray*/
-              } /*Parcelable.Creator*/;
-
-        public final android.os.Parcelable SuperState;
-      /* state that I'm actually interested in saving/restoring: */
-        public final float ScrollX, ScrollY, ZoomFactor;
-
-        public SavedDrawViewState
-          (
-            android.os.Parcelable SuperState,
-            float ScrollX,
-            float ScrollY,
-            float ZoomFactor
-          )
-          {
-            super(SuperState);
-            this.SuperState = SuperState;
-            this.ScrollX = ScrollX;
-            this.ScrollY = ScrollY;
-            this.ZoomFactor = ZoomFactor;
-          } /*SavedDrawViewState*/
-
-        public void writeToParcel
-          (
-            android.os.Parcel SavedState,
-            int Flags
-          )
-          {
-            super.writeToParcel(SavedState, Flags);
-          /* put my state in a Bundle, where each item is associated with a
-            keyword name (unlike the Parcel itself, where items are identified
-            by order). I think this makes things easier to understand. */
-            final android.os.Bundle MyState = new android.os.Bundle();
-            MyState.putFloat("ScrollX", ScrollX);
-            MyState.putFloat("ScrollY", ScrollY);
-            MyState.putFloat("ZoomFactor", ZoomFactor);
-            SavedState.writeBundle(MyState);
-          } /*writeToParcel*/
-
-      } /*SavedDrawViewState*/
-
     @Override
     public android.os.Parcelable onSaveInstanceState()
       {
@@ -1148,17 +1077,19 @@ public class DrawView extends android.view.View
           (
             new PointF(getWidth() / 2.0f, getHeight() / 2.0f)
           );
+        final android.os.Bundle MyState = new android.os.Bundle();
+        MyState.putFloat("ScrollX", DrawCenter.x);
+        MyState.putFloat("ScrollY", DrawCenter.y);
+        MyState.putFloat("ZoomFactor", ZoomFactor);
         return
-            new SavedDrawViewState
+            new BundledSavedState
               (
                 super.onSaveInstanceState(),
-                DrawCenter.x,
-                DrawCenter.y,
-                ZoomFactor
+                MyState
               );
       } /*onSaveInstanceState*/
 
-    private android.os.Parcelable LastSavedState = null;
+    private android.os.Bundle LastSavedState = null;
 
     @Override
     public void onRestoreInstanceState
@@ -1166,10 +1097,9 @@ public class DrawView extends android.view.View
         android.os.Parcelable SavedState
       )
       {
-        final SavedDrawViewState MyState = (SavedDrawViewState)SavedState;
-        super.onRestoreInstanceState(MyState.SuperState);
+        super.onRestoreInstanceState(((BundledSavedState)SavedState).SuperState);
       /* defer rest of restoration to after I have been given layout dimensions */
-        LastSavedState = SavedState;
+        LastSavedState = ((BundledSavedState)SavedState).MyState;
       } /*onRestoreInstanceState*/
 
     @Override
@@ -1188,14 +1118,18 @@ public class DrawView extends android.view.View
         if (LastSavedState != null)
           {
           /* finish restoration of saved instance state */
-            final SavedDrawViewState MyState = (SavedDrawViewState)LastSavedState;
+            ZoomFactor = LastSavedState.getFloat("ZoomFactor", 1.0f);
             ScrollOffset = FindScrollOffset
               (
-                /*DrawCoords =*/ new PointF(MyState.ScrollX, MyState.ScrollY),
+                /*DrawCoords =*/
+                    new PointF
+                      (
+                        LastSavedState.getFloat("ScrollX", 0.0f),
+                        LastSavedState.getFloat("ScrollY", 0.0f)
+                      ),
                 /*ViewCoords =*/ new PointF(getWidth() / 2.0f, getHeight() / 2.0f),
-                /*ZoomFactor =*/ MyState.ZoomFactor
+                /*ZoomFactor =*/ ZoomFactor
               );
-            ZoomFactor = MyState.ZoomFactor;
             invalidate();
             LastSavedState = null;
           } /*if*/
