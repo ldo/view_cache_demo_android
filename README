@@ -3,8 +3,18 @@ smooth scrolling of a complex image view by caching a bitmap rendering
 of the image. Without this, scrolling would be jerky because of the
 time taken to redraw the view each time.
 
-The DrawView class also demonstrates custom handling of long-tap
-and double-tap events.
+All this custom handling is implemented in the DrawView class. This
+caches only a limited area beyond the immediately-visible portion of
+the view, to try to reduce memory usage. The cache is automatically
+regenerated as the user scrolls the image. This class also demonstrates
+custom handling of single-tap, long-tap and double-tap events, with
+automatic conversion of tapped position to original image coordinates.
+
+Drawer is an interface to be implemented by the class that defines the
+actual image to be drawn in the view.
+
+BundledSavedState is a generic class for easier implementation of
+save/restore instance state in a custom View.
 
 Contents:
     src/ -- Java sources for the Android app
