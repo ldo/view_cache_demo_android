@@ -1271,7 +1271,7 @@ public class DrawView extends android.view.View
     protected int computeHorizontalScrollExtent()
       {
         return
-            (int)Math.round(getWidth() * ScrollScale / GetViewSize().x);
+            Math.round(getWidth() * ScrollScale / GetViewSize().x);
       } /*computeHorizontalScrollExtent*/
 
     @Override
@@ -1280,7 +1280,7 @@ public class DrawView extends android.view.View
         final RectF ViewBounds = GetScrolledViewBounds();
         return
             ViewBounds.right - ViewBounds.left > getWidth() ?
-                (int)Math.round
+                Math.round
                   (
                         (- ViewBounds.left)
                     *
@@ -1303,7 +1303,7 @@ public class DrawView extends android.view.View
     protected int computeVerticalScrollExtent()
       {
         return
-            (int)Math.round(getHeight() * ScrollScale / GetViewSize().y);
+            Math.round(getHeight() * ScrollScale / GetViewSize().y);
       } /*computeVerticalScrollExtent*/
 
     @Override
@@ -1312,7 +1312,7 @@ public class DrawView extends android.view.View
         final RectF ViewBounds = GetScrolledViewBounds();
         return
             ViewBounds.bottom - ViewBounds.top > getHeight() ?
-                (int)Math.round
+                Math.round
                   (
                         (- ViewBounds.top)
                     *
