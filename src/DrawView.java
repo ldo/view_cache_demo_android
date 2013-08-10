@@ -621,7 +621,7 @@ public class DrawView extends android.view.View
             this.StartScroll = StartScroll;
             this.EndScroll = EndScroll;
             CurrentAnim = this;
-            getHandler().post(this);
+            post(this);
           } /*ScrollAnimator*/
 
         public void run()
@@ -643,11 +643,10 @@ public class DrawView extends android.view.View
                       ),
                     false
                   );
-                final android.os.Handler MyHandler = getHandler();
-                  /* can be null if activity is being destroyed */
-                if (MyHandler != null && CurrentTime < EndTime)
+                if (getHandler() != null && CurrentTime < EndTime)
+                  /* handler can be null if activity is being destroyed */
                   {
-                    MyHandler.post(this);
+                    post(this);
                   }
                 else
                   {
@@ -768,7 +767,7 @@ public class DrawView extends android.view.View
                 Mouse1ID = TheEvent.getPointerId(0);
                 MouseMoved = false;
                 Handled = true;
-                getHandler().postDelayed
+                postDelayed
                   (
                     LongClicker,
                     android.view.ViewConfiguration.getLongPressTimeout()
