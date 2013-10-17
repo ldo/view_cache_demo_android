@@ -24,6 +24,7 @@ import android.graphics.RectF;
 import android.graphics.Bitmap;
 import android.view.MotionEvent;
 import nz.gen.geek_central.android.useful.BundledSavedState;
+import static nz.gen.geek_central.android.useful.Useful.GetTime;
 
 public class DrawView extends android.view.View
   {
@@ -628,7 +629,7 @@ public class DrawView extends android.view.View
           {
             if (CurrentAnim == this)
               {
-                final double CurrentTime = System.currentTimeMillis() / 1000.0;
+                final double CurrentTime = GetTime();
                 final float AnimAmt =
                     AnimFunction.getInterpolation
                       (
@@ -685,7 +686,7 @@ public class DrawView extends android.view.View
                             ViewBounds.bottom > getHeight() && YVelocity < 0;
                     if (DoFling)
                       {
-                        final double CurrentTime = System.currentTimeMillis() / 1000.0;
+                        final double CurrentTime = GetTime();
                         final float InitialAttenuate = 2.0f; /* attenuates initial speed */
                         final float FinalAttenuate = 1.0f; /* attenuates duration of scroll */
                         final float ScrollDuration =
@@ -1239,7 +1240,7 @@ public class DrawView extends android.view.View
               {
                 if (Animate)
                   {
-                    final double CurrentTime = System.currentTimeMillis() / 1000.0;
+                    final double CurrentTime = GetTime();
                     final float ScrollDuration = 1.0f; /* maybe make this depend on scroll amount in future */
                     new ScrollAnimator
                       (
@@ -1330,4 +1331,4 @@ public class DrawView extends android.view.View
             ScrollScale;
       } /*computeVerticalScrollRange*/
 
-  } /*DrawView*/
+  } /*DrawView*/;
