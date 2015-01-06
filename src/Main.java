@@ -56,7 +56,7 @@ public class Main extends android.app.Activity
             setTitle(R.string.settings);
             final LinearLayout MainLayout = new LinearLayout(ctx);
             MainLayout.setOrientation(LinearLayout.HORIZONTAL);
-            setContentView(MainLayout); 
+            setContentView(MainLayout);
             final ViewGroup.LayoutParams ButtonLayoutParams =
                 new ViewGroup.LayoutParams
                   (
